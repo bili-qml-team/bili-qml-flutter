@@ -1,7 +1,25 @@
-# B站问号榜 Flutter 客户端 (Bili QML App)
+<p align="center">
+  <img src="icons/button-icon.png" width="100" height="100" alt="Bilibili Q-Mark List Logo">
+</p>
+
+<h1 align="center">B站问号榜 Flutter 客户端</h1>
+
+<p align="center">
+  <strong>分享抽象的视频，自动同步弹幕，打造Bilibili的抽象视频排行榜。</strong>
+</p>
+
+---
 
 这是一个基于 Flutter 开发的 B站问号榜客户端，支持 **Android** 和 **Windows** 平台。  
 IOS因为本人无MAC，所以无法测试，所以弃了。
+
+
+# 使用教程
+前往 [Releases](https://github.com/bili-qml-team/bili-qml-flutter/releases) 下载
+   * Windows版解压后运行 **bili_qml_app.exe**
+   * 安卓版安装APK即可
+
+# 开发教程
 
 ## 📋 环境要求
 
