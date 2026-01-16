@@ -11,9 +11,30 @@ on:
         required: true
         default: 'main'
         type: string
+      build_windows:
+        description: '构建 Windows'
+        required: false
+        default: true
+        type: boolean
+      build_linux:
+        description: '构建 Linux'
+        required: false
+        default: true
+        type: boolean
+      build_android:
+        description: '构建 Android'
+        required: false
+        default: true
+        type: boolean
+      build_web:
+        description: '构建 Web'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build-windows:
+    if: ${{ github.event_name == 'push' || inputs.build_windows }}
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -38,6 +59,7 @@ jobs:
           path: build/windows/x64/runner/Release/
 
   build-linux:
+    if: ${{ github.event_name == 'push' || inputs.build_linux }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -67,6 +89,7 @@ jobs:
           path: build/linux/x64/release/bundle/
 
   build-android:
+    if: ${{ github.event_name == 'push' || inputs.build_android }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -87,6 +110,17 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.jks
+
+      - name: Create key.properties
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=release.jks" >> android/key.properties
+
       - name: Build APK
         run: flutter build apk --release
 
@@ -97,6 +131,7 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
 
   build-web:
+    if: ${{ github.event_name == 'push' || inputs.build_web }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
