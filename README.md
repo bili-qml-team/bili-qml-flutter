@@ -10,14 +10,15 @@
 
 ---
 
-这是一个基于 Flutter 开发的 B站问号榜客户端，支持 **Android** 和 **Windows** 平台。  
-IOS因为本人无MAC，所以无法测试，所以弃了。
+这是一个基于 Flutter 开发的 B站问号榜客户端，支持 **Android**、**Windows**、**Linux** 和 **Web** 平台。  
+iOS 因为开发者无 Mac，所以无法测试，暂不支持。
 
 
 # 使用教程
 前往 [Releases](https://github.com/bili-qml-team/bili-qml-flutter/releases) 下载
    * Windows版解压后运行 **bili_qml_app.exe**
    * 安卓版安装APK即可
+   * Web版可通过在线地址访问（暂无）
 
 # 开发教程
 
@@ -31,9 +32,11 @@ IOS因为本人无MAC，所以无法测试，所以弃了。
 - **IDE**: VS Code (推荐) 或 Android Studio / IntelliJ IDEA
 
 ### 平台特定要求
-- **Android**: Android Studio, Android SDK, 改好的 AVD 或真机
+- **Android**: Android Studio, Android SDK, 配置好的 AVD 或真机
 - **Windows**: Visual Studio 2022 (需要安装 "C++ 桌面开发" 工作负载)
+- **Linux**: Clang, CMake, Ninja, pkg-config, GTK3 开发库
 - **iOS**: macOS, Xcode, CocoaPods
+- **Web**: Chrome 或其他现代浏览器
 
 ## 🛠️ 项目初始化
 
@@ -55,6 +58,23 @@ IOS因为本人无MAC，所以无法测试，所以弃了。
 flutter run -d windows
 ```
 
+### Linux
+首先安装必要的依赖：
+```bash
+# Ubuntu/Debian
+sudo apt-get install clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev fonts-noto-cjk
+
+# Fedora
+sudo dnf install clang cmake ninja-build pkgconfig gtk3-devel xz-devel google-noto-sans-cjk-fonts
+
+# Arch Linux
+sudo pacman -S clang cmake ninja pkgconf gtk3 xz noto-fonts-cjk
+```
+然后运行：
+```bash
+flutter run -d linux
+```
+
 ### Android
 确保已连接设备或启动模拟器：
 ```bash
@@ -65,6 +85,12 @@ flutter run -d android
 确保已启动模拟器或连接 iOS 设备：
 ```bash
 flutter run -d ios
+```
+
+### Web
+在浏览器中运行：
+```bash
+flutter run -d chrome
 ```
 
 ## 📦 构建发布
@@ -95,7 +121,42 @@ flutter build appbundle --release
 
 > **注意**: 正式发布前需要配置签名密钥。请参考 [Android 签名文档](https://flutter.dev/docs/deployment/android#signing-the-app)。
 
-### 3. iOS (.ipa) (仅 macOS)
+### 3. Linux
+
+确保已安装构建依赖（见上方开发运行部分），然后构建：
+```bash
+flutter build linux --release
+```
+构建产物位于：`build/linux/x64/release/bundle/`
+- 输出包含 `bili_qml_app` 可执行文件和 `lib/` 目录
+- `data` 文件夹包含资源文件
+- 发布时需要打包整个 `bundle` 目录
+
+> **注意**: 用户运行时需要安装中文字体以确保中文正常显示：
+> ```bash
+> # Ubuntu/Debian
+> sudo apt-get install fonts-noto-cjk
+> 
+> # Fedora
+> sudo dnf install google-noto-sans-cjk-fonts
+> 
+> # Arch Linux
+> sudo pacman -S noto-fonts-cjk
+> ```
+
+### 4. Web
+
+构建 Web 版本：
+```bash
+flutter build web --release
+```
+构建产物位于：`build/web/`
+- 输出包含 `index.html` 和必要的资源文件
+- 可直接部署到任何静态网站托管服务（如 GitHub Pages、Vercel、Netlify 等）
+
+> **注意**: 部署时可能需要配置 CORS 代理以访问 B站 API。
+
+### 5. iOS (.ipa) (仅 macOS)
 
 构建 iOS 归档：
 ```bash
