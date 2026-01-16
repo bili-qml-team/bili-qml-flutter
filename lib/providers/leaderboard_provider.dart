@@ -1,0 +1,100 @@
+import 'package:flutter/foundation.dart';
+import '../config/constants.dart';
+import '../models/models.dart';
+import '../services/services.dart';
+
+/// 排行榜状态管理
+class LeaderboardProvider extends ChangeNotifier {
+  final ApiService _apiService;
+
+  LeaderboardRange _currentRange = LeaderboardRange.realtime;
+  List<LeaderboardItem> _items = [];
+  bool _isLoading = false;
+  String? _error;
+  bool _requiresCaptcha = false;
+
+  LeaderboardProvider(this._apiService);
+
+  // Getters
+  LeaderboardRange get currentRange => _currentRange;
+  List<LeaderboardItem> get items => _items;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get requiresCaptcha => _requiresCaptcha;
+
+  /// 切换时间范围
+  Future<void> setRange(LeaderboardRange range) async {
+    if (_currentRange == range && _items.isNotEmpty) return;
+
+    _currentRange = range;
+    notifyListeners();
+    await fetchLeaderboard();
+  }
+
+  /// 获取排行榜数据
+  Future<void> fetchLeaderboard({String? altchaSolution}) async {
+    _isLoading = true;
+    _error = null;
+    _requiresCaptcha = false;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.getLeaderboard(
+        _currentRange,
+        altcha: altchaSolution,
+      );
+
+      if (response.requiresCaptcha) {
+        _requiresCaptcha = true;
+        _error = '需要人机验证';
+      } else if (response.success) {
+        _items = response.list;
+        // 异步加载视频详情
+        _loadVideoDetails();
+      } else {
+        _error = response.error ?? '获取排行榜失败';
+      }
+    } catch (e) {
+      _error = '网络错误: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// 使用 Altcha 解决方案重试
+  Future<void> retryWithAltcha(String solution) async {
+    await fetchLeaderboard(altchaSolution: solution);
+  }
+
+  /// 刷新排行榜
+  Future<void> refresh() async {
+    await fetchLeaderboard();
+  }
+
+  /// 异步加载视频详情（标题、封面等）
+  Future<void> _loadVideoDetails() async {
+    for (int i = 0; i < _items.length; i++) {
+      final item = _items[i];
+      try {
+        final videoInfo = await _apiService.getBilibiliVideoInfo(item.bvid);
+        if (videoInfo != null) {
+          _items[i] = item.copyWithVideoInfo(
+            title: videoInfo.title,
+            picUrl: videoInfo.pic,
+            ownerName: videoInfo.ownerName,
+            viewCount: videoInfo.view,
+            danmakuCount: videoInfo.danmaku,
+          );
+          // 每加载几个就通知更新 UI
+          if (i % 3 == 0 || i == _items.length - 1) {
+            notifyListeners();
+          }
+        }
+      } catch (e) {
+        // 忽略单个视频信息加载失败
+        debugPrint('Failed to load video info for ${item.bvid}: $e');
+      }
+    }
+  }
+}
