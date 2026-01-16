@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart';
 import 'dart:io';
@@ -8,7 +9,7 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: Platform.isWindows ? 'Microsoft YaHei' : null,
+      fontFamily: !kIsWeb && Platform.isWindows ? 'Microsoft YaHei' : null,
       brightness: Brightness.light,
       colorScheme: ColorScheme.light(
         primary: AppColors.biliBlue,
@@ -76,7 +77,7 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: Platform.isWindows ? 'Microsoft YaHei' : null,
+      fontFamily: !kIsWeb && Platform.isWindows ? 'Microsoft YaHei' : null,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.dark(
         primary: AppColors.biliBlue,
