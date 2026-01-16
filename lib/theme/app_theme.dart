@@ -1,6 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart';
-import 'dart:io';
+
+/// 获取桌面平台中文字体
+String? _getDesktopFontFamily() {
+  if (kIsWeb) return null;
+
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.windows:
+      return 'Microsoft YaHei';
+    case TargetPlatform.linux:
+      return 'Noto Sans CJK SC';
+    default:
+      return null;
+  }
+}
 
 /// 应用主题配置
 class AppTheme {
@@ -8,7 +22,7 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: Platform.isWindows ? 'Microsoft YaHei' : null,
+      fontFamily: _getDesktopFontFamily(),
       brightness: Brightness.light,
       colorScheme: ColorScheme.light(
         primary: AppColors.biliBlue,
@@ -76,7 +90,7 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: Platform.isWindows ? 'Microsoft YaHei' : null,
+      fontFamily: _getDesktopFontFamily(),
       brightness: Brightness.dark,
       colorScheme: ColorScheme.dark(
         primary: AppColors.biliBlue,
