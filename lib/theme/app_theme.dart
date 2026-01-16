@@ -1,14 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart';
-import 'dart:io';
 
 /// 获取桌面平台中文字体
 String? _getDesktopFontFamily() {
   if (kIsWeb) return null;
-  if (Platform.isWindows) return 'Microsoft YaHei';
-  if (Platform.isLinux) return 'Noto Sans CJK SC';
-  return null;
+
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.windows:
+      return 'Microsoft YaHei';
+    case TargetPlatform.linux:
+      return 'Noto Sans CJK SC';
+    default:
+      return null;
+  }
 }
 
 /// 应用主题配置
