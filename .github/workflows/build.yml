@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: '要构建的分支'
+        required: true
+        default: 'main'
+        type: string
 
 jobs:
   build-windows:
