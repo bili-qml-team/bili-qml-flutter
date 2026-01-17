@@ -8,11 +8,7 @@ class ShareOptionsDialog extends StatelessWidget {
   final LeaderboardItem item;
   final int? rank;
 
-  const ShareOptionsDialog({
-    super.key,
-    required this.item,
-    this.rank,
-  });
+  const ShareOptionsDialog({super.key, required this.item, this.rank});
 
   /// 显示分享选项对话框
   static Future<void> show(
@@ -144,10 +140,7 @@ class ShareOptionsDialog extends StatelessWidget {
         ),
         child: Icon(icon, color: iconColor, size: 20),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       subtitle: Text(
         subtitle,
         style: TextStyle(fontSize: 12, color: Colors.grey[600]),

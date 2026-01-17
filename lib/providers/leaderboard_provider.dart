@@ -28,8 +28,7 @@ class LeaderboardProvider extends ChangeNotifier {
   bool get requiresCaptcha => _requiresCaptcha;
   String? get searchQuery => _searchQuery;
   String? get upNameFilter => _upNameFilter;
-  bool get hasActiveFilters =>
-      _searchQuery != null || _upNameFilter != null;
+  bool get hasActiveFilters => _searchQuery != null || _upNameFilter != null;
 
   /// 获取过滤后的列表
   List<LeaderboardItem> _getFilteredItems() {

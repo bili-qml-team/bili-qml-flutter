@@ -180,11 +180,7 @@ class VideoCard extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.share,
-            color: Colors.white,
-            size: 16,
-          ),
+          child: const Icon(Icons.share, color: Colors.white, size: 16),
         ),
       ),
     );

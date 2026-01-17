@@ -5,10 +5,7 @@ import '../models/models.dart';
 /// 分享服务类
 class ShareService {
   /// 分享视频完整信息（标题 + 链接 + 排名）
-  Future<void> shareVideoInfo(
-    LeaderboardItem item, {
-    int? rank,
-  }) async {
+  Future<void> shareVideoInfo(LeaderboardItem item, {int? rank}) async {
     final text = _generateShareText(item, rank: rank);
     await Share.share(text);
   }
@@ -31,10 +28,7 @@ class ShareService {
   }
 
   /// 复制完整信息到剪贴板
-  Future<void> copyVideoInfo(
-    LeaderboardItem item, {
-    int? rank,
-  }) async {
+  Future<void> copyVideoInfo(LeaderboardItem item, {int? rank}) async {
     final text = _generateShareText(item, rank: rank);
     await Clipboard.setData(ClipboardData(text: text));
   }
@@ -45,10 +39,7 @@ class ShareService {
   }
 
   /// 生成分享文本
-  String _generateShareText(
-    LeaderboardItem item, {
-    int? rank,
-  }) {
+  String _generateShareText(LeaderboardItem item, {int? rank}) {
     final buffer = StringBuffer();
 
     // 标题
