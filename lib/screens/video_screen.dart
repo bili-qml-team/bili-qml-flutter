@@ -216,6 +216,31 @@ class _VideoScreenState extends State<VideoScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              if (_videoInfo != null) {
+                final item = LeaderboardItem(
+                  bvid: widget.bvid,
+                  count: _status?.count ?? 0,
+                  title: _videoInfo!.title,
+                  picUrl: _videoInfo!.pic,
+                  ownerName: _videoInfo!.ownerName,
+                  viewCount: _videoInfo!.view,
+                  danmakuCount: _videoInfo!.danmaku,
+                );
+                ShareOptionsDialog.show(context, item);
+              } else {
+                final item = LeaderboardItem(
+                  bvid: widget.bvid,
+                  count: _status?.count ?? 0,
+                  title: widget.title,
+                );
+                ShareOptionsDialog.show(context, item);
+              }
+            },
+            tooltip: '分享',
+          ),
+          IconButton(
             icon: const Icon(Icons.open_in_browser),
             onPressed: _openInBrowser,
             tooltip: '在浏览器中打开',

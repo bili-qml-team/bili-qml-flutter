@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return LeaderboardTabs(
                   currentRange: provider.currentRange,
                   onRangeChanged: (range) => provider.setRange(range),
-                  onSearchPressed: () => _showSearchDialog(context),
+                  onSearchPressed: () => SearchBottomSheet.show(context),
                 );
               },
             ),
@@ -85,6 +85,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const Spacer(),
+          // BV号搜索按钮
+          IconButton(
+            icon: Icon(
+              Icons.video_library,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+            onPressed: () => _showBvSearchDialog(context),
+            tooltip: '搜索BV号',
+          ),
           // 主题切换按钮
           IconButton(
             icon: Icon(
@@ -281,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
+  void _showBvSearchDialog(BuildContext context) {
     final controller = TextEditingController();
 
     showDialog(

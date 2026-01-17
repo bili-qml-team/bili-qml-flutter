@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/models.dart';
 import '../theme/colors.dart';
+import 'share_options_dialog.dart';
 
 /// 视频卡片组件
 class VideoCard extends StatelessWidget {
@@ -40,6 +41,12 @@ class VideoCard extends StatelessWidget {
                   _buildThumbnail(),
                   // 排名徽章
                   Positioned(left: 8, top: 8, child: _buildRankBadge(isDark)),
+                  // 分享按钮
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: _buildShareButton(context),
+                  ),
                   // 抽象指数
                   Positioned(right: 8, bottom: 8, child: _buildScoreTag()),
                 ],
@@ -146,6 +153,38 @@ class VideoCard extends StatelessWidget {
           color: textColor,
           fontSize: rank == 1 && isRank1Custom ? 12 : 14,
           fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareButton(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          ShareOptionsDialog.show(context, item, rank: rank);
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.share,
+            color: Colors.white,
+            size: 16,
+          ),
         ),
       ),
     );

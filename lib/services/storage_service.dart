@@ -17,6 +17,9 @@ class StorageService {
     return _prefs!;
   }
 
+  /// 获取 SharedPreferences 实例（用于其他服务）
+  SharedPreferences get prefs => _preferences;
+
   // ==================== 主题设置 ====================
 
   /// 获取主题设置

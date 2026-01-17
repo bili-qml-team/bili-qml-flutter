@@ -39,6 +39,9 @@ dependencies:
   
   # 缓存网络图片
   cached_network_image: ^3.4.0
+  
+  # 分享功能
+  share_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:

@@ -13,14 +13,72 @@ class LeaderboardProvider extends ChangeNotifier {
   String? _error;
   bool _requiresCaptcha = false;
 
+  // 搜索/筛选相关
+  String? _searchQuery;
+  String? _upNameFilter;
+
   LeaderboardProvider(this._apiService);
 
   // Getters
   LeaderboardRange get currentRange => _currentRange;
-  List<LeaderboardItem> get items => _items;
+  List<LeaderboardItem> get items => _getFilteredItems();
+  List<LeaderboardItem> get allItems => _items; // 原始数据
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get requiresCaptcha => _requiresCaptcha;
+  String? get searchQuery => _searchQuery;
+  String? get upNameFilter => _upNameFilter;
+  bool get hasActiveFilters =>
+      _searchQuery != null || _upNameFilter != null;
+
+  /// 获取过滤后的列表
+  List<LeaderboardItem> _getFilteredItems() {
+    var filtered = _items;
+
+    // 按关键词搜索（标题）
+    if (_searchQuery != null && _searchQuery!.isNotEmpty) {
+      final query = _searchQuery!.toLowerCase();
+      filtered = filtered.where((item) {
+        return item.title?.toLowerCase().contains(query) ?? false;
+      }).toList();
+    }
+
+    // 按 UP主 筛选
+    if (_upNameFilter != null && _upNameFilter!.isNotEmpty) {
+      final filter = _upNameFilter!.toLowerCase();
+      filtered = filtered.where((item) {
+        return item.ownerName?.toLowerCase().contains(filter) ?? false;
+      }).toList();
+    }
+
+    return filtered;
+  }
+
+  /// 设置搜索关键词
+  void setSearchQuery(String? query) {
+    _searchQuery = query?.trim();
+    notifyListeners();
+  }
+
+  /// 设置 UP主 筛选
+  void setUpNameFilter(String? upName) {
+    _upNameFilter = upName?.trim();
+    notifyListeners();
+  }
+
+  /// 应用筛选器
+  void applyFilters({String? keyword, String? upName}) {
+    _searchQuery = keyword?.trim();
+    _upNameFilter = upName?.trim();
+    notifyListeners();
+  }
+
+  /// 清除所有筛选
+  void clearFilters() {
+    _searchQuery = null;
+    _upNameFilter = null;
+    notifyListeners();
+  }
 
   /// 切换时间范围
   Future<void> setRange(LeaderboardRange range) async {
