@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../theme/colors.dart';
+import '../widgets/widgets.dart';
 import 'video_screen.dart';
 
 /// 收藏页面
@@ -32,6 +33,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       appBar: AppBar(
         title: const Text('我的收藏'),
         actions: [
+          // 筛选按钮
+          Consumer<FavoritesProvider>(
+            builder: (context, provider, _) {
+              if (provider.favorites.isEmpty && !provider.hasActiveFilters) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: Icon(
+                  Icons.filter_list,
+                  color: provider.hasActiveFilters ? AppColors.biliBlue : null,
+                ),
+                onPressed: () => SearchBottomSheet.show(context),
+                tooltip: '筛选',
+              );
+            },
+          ),
+          // 清空收藏按钮
           Consumer<FavoritesProvider>(
             builder: (context, provider, _) {
               if (provider.favorites.isEmpty) return const SizedBox.shrink();

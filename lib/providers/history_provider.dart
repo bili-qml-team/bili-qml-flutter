@@ -1,24 +1,40 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import '../services/services.dart';
+import 'base/filterable_provider.dart';
 
 /// 浏览历史管理 Provider
-class HistoryProvider extends ChangeNotifier {
+class HistoryProvider extends FilterableProvider<HistoryItem> {
   final HistoryService _historyService;
 
-  List<HistoryItem> _history = [];
   bool _isLoading = false;
 
   HistoryProvider(this._historyService);
 
-  /// 历史记录列表
-  List<HistoryItem> get history => _history;
+  /// 历史记录列表（筛选后的）
+  List<HistoryItem> get history => items; // 使用基类的 items getter
+
+  /// 所有历史记录（未筛选）
+  List<HistoryItem> get allHistory => rawItems;
 
   /// 是否正在加载
   bool get isLoading => _isLoading;
 
-  /// 历史记录数量
-  int get count => _history.length;
+  /// 历史记录数量（筛选后的）
+  int get count => items.length;
+
+  /// 全部历史记录数量（未筛选）
+  int get totalCount => rawItems.length;
+
+  @override
+  FilterEngine<HistoryItem> createFilterEngine() {
+    return FilterEngine<HistoryItem>([
+      // 标题筛选策略
+      TitleFilterStrategy<HistoryItem>((item) => item.title),
+      // UP主筛选策略
+      UpNameFilterStrategy<HistoryItem>((item) => item.ownerName),
+    ]);
+  }
 
   /// 初始化：加载历史记录
   Future<void> init() async {
@@ -31,10 +47,10 @@ class HistoryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _history = await _historyService.getAll();
+      rawItems = await _historyService.getAll();
     } catch (e) {
       debugPrint('加载历史记录失败: $e');
-      _history = [];
+      rawItems = [];
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -86,7 +102,7 @@ class HistoryProvider extends ChangeNotifier {
     try {
       final success = await _historyService.clear();
       if (success) {
-        _history = [];
+        rawItems = [];
         notifyListeners();
       }
       return success;
@@ -96,11 +112,12 @@ class HistoryProvider extends ChangeNotifier {
     }
   }
 
-  /// 按日期分组历史记录
+  /// 按日期分组历史记录（使用筛选后的数据）
   Map<String, List<HistoryItem>> getGroupedByDate() {
     final Map<String, List<HistoryItem>> grouped = {};
 
-    for (final item in _history) {
+    for (final item in items) {
+      // 使用筛选后的 items
       final dateKey = _getDateKey(item.viewedAt);
       if (!grouped.containsKey(dateKey)) {
         grouped[dateKey] = [];

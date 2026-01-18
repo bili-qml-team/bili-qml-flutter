@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../theme/colors.dart';
+import '../widgets/widgets.dart';
 import 'video_screen.dart';
 
 /// 浏览历史页面
@@ -32,6 +33,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         title: const Text('浏览历史'),
         actions: [
+          // 筛选按钮
+          Consumer<HistoryProvider>(
+            builder: (context, provider, _) {
+              if (provider.history.isEmpty && !provider.hasActiveFilters) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: Icon(
+                  Icons.filter_list,
+                  color: provider.hasActiveFilters ? AppColors.biliBlue : null,
+                ),
+                onPressed: () => SearchBottomSheet.show(context),
+                tooltip: '筛选',
+              );
+            },
+          ),
+          // 清空历史按钮
           Consumer<HistoryProvider>(
             builder: (context, provider, _) {
               if (provider.history.isEmpty) return const SizedBox.shrink();

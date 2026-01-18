@@ -5,3 +5,5 @@ export 'share_service.dart';
 export 'search_history_service.dart';
 export 'favorites_service.dart';
 export 'history_service.dart';
+export 'bvid_parser_service.dart';
+export 'filter/filter.dart';
