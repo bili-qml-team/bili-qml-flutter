@@ -123,6 +123,10 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         _error = '需要人机验证';
       } else if (response.success) {
         debugPrint('Received ${response.list.length} items for page $_currentPage');
+        // 打印前3个BVID用于调试
+        if (response.list.isNotEmpty) {
+          debugPrint('First 3 BVIDs: ${response.list.take(3).map((e) => e.bvid).join(", ")}');
+        }
         rawItems = response.list; // 使用基类的 rawItems setter
         // 异步加载视频详情
         _loadVideoDetails();
@@ -131,6 +135,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
       }
     } catch (e) {
       _error = '网络错误: ${e.toString()}';
+      debugPrint('Error fetching leaderboard: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

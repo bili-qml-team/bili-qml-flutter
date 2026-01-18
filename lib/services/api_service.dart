@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/models.dart';
@@ -104,7 +105,10 @@ class ApiService {
       '$_apiBase/leaderboard',
     ).replace(queryParameters: queryParams);
 
+    debugPrint('API Request URL: $uri');
     final response = await http.get(uri, headers: _headers);
+    debugPrint('API Response Status: ${response.statusCode}, Body length: ${response.body.length}');
+    
     final json = jsonDecode(response.body) as Map<String, dynamic>;
 
     return LeaderboardResponse.fromJson(json, response.statusCode);
