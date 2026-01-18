@@ -1,6 +1,11 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/models.dart';
+import '../widgets/share_card_template.dart';
 
 /// 分享服务类
 class ShareService {
@@ -31,6 +36,42 @@ class ShareService {
   Future<void> copyVideoInfo(LeaderboardItem item, {int? rank}) async {
     final text = _generateShareText(item, rank: rank);
     await Clipboard.setData(ClipboardData(text: text));
+  }
+
+  /// 生成并分享截图卡片
+  Future<void> shareScreenshot(
+    BuildContext context,
+    LeaderboardItem item, {
+    int? rank,
+  }) async {
+    try {
+      // 创建截图控制器
+      final screenshotController = ScreenshotController();
+
+      // 生成截图
+      final imageBytes = await screenshotController.captureFromWidget(
+        MediaQuery(
+          data: const MediaQueryData(),
+          child: Material(
+            child: ShareCardTemplate(item: item, rank: rank),
+          ),
+        ),
+        delay: const Duration(milliseconds: 100),
+      );
+
+      // 保存到临时文件
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/share_card_${item.bvid}.png');
+      await file.writeAsBytes(imageBytes);
+
+      // 分享文件
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: '${item.title ?? item.bvid} - B站问号榜');
+    } catch (e) {
+      debugPrint('生成分享截图失败: $e');
+      rethrow;
+    }
   }
 
   /// 生成视频链接

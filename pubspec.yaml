@@ -42,6 +42,10 @@ dependencies:
   
   # 分享功能
   share_plus: ^10.1.2
+  
+  # 截图功能
+  screenshot: ^3.0.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

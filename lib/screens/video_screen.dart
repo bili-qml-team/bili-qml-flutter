@@ -28,9 +28,21 @@ class _VideoScreenState extends State<VideoScreen> {
   void initState() {
     super.initState();
     _loadData();
+    // 自动记录浏览历史
+    _recordHistory();
   }
 
   String get _videoUrl => 'https://www.bilibili.com/video/${widget.bvid}';
+
+  /// 记录浏览历史
+  Future<void> _recordHistory() async {
+    try {
+      final historyProvider = context.read<HistoryProvider>();
+      await historyProvider.addHistory(widget.bvid, title: widget.title);
+    } catch (e) {
+      debugPrint('记录浏览历史失败: $e');
+    }
+  }
 
   Future<void> _loadData() async {
     try {
@@ -239,6 +251,31 @@ class _VideoScreenState extends State<VideoScreen> {
               }
             },
             tooltip: '分享',
+          ),
+          Consumer<FavoritesProvider>(
+            builder: (context, favoritesProvider, _) {
+              final isFavorited = favoritesProvider.isFavoritedSync(
+                widget.bvid,
+              );
+              return IconButton(
+                icon: Icon(
+                  isFavorited ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorited ? Colors.pinkAccent : null,
+                ),
+                onPressed: () async {
+                  await favoritesProvider.toggleFavorite(
+                    widget.bvid,
+                    title: _videoInfo?.title ?? widget.title,
+                    picUrl: _videoInfo?.pic,
+                    ownerName: _videoInfo?.ownerName,
+                  );
+                  if (mounted) {
+                    _showSnackBar(isFavorited ? '已取消收藏' : '已添加到收藏');
+                  }
+                },
+                tooltip: isFavorited ? '取消收藏' : '收藏',
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.open_in_browser),

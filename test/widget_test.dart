@@ -12,9 +12,18 @@ void main() {
     // 初始化 API 服务
     final apiService = ApiService();
 
+    // 初始化收藏和历史服务
+    final favoritesService = FavoritesService(storageService);
+    final historyService = HistoryService(storageService);
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-      BiliQmlApp(storageService: storageService, apiService: apiService),
+      BiliQmlApp(
+        storageService: storageService,
+        apiService: apiService,
+        favoritesService: favoritesService,
+        historyService: historyService,
+      ),
     );
 
     // 验证应用标题显示

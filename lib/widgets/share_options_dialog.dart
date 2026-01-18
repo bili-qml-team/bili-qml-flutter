@@ -4,7 +4,7 @@ import '../services/services.dart';
 import '../theme/colors.dart';
 
 /// 分享选项对话框
-class ShareOptionsDialog extends StatelessWidget {
+class ShareOptionsDialog extends StatefulWidget {
   final LeaderboardItem item;
   final int? rank;
 
@@ -24,6 +24,13 @@ class ShareOptionsDialog extends StatelessWidget {
       builder: (context) => ShareOptionsDialog(item: item, rank: rank),
     );
   }
+
+  @override
+  State<ShareOptionsDialog> createState() => _ShareOptionsDialogState();
+}
+
+class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
+  bool _isGeneratingScreenshot = false;
 
   @override
   Widget build(BuildContext context) {
@@ -64,9 +71,9 @@ class ShareOptionsDialog extends StatelessWidget {
               icon: Icons.copy,
               iconColor: AppColors.biliBlue,
               title: '复制 BV 号',
-              subtitle: item.bvid,
+              subtitle: widget.item.bvid,
               onTap: () async {
-                await shareService.copyBvid(item.bvid);
+                await shareService.copyBvid(widget.item.bvid);
                 if (context.mounted) {
                   Navigator.of(context).pop();
                   _showSnackBar(context, '已复制 BV 号');
@@ -78,9 +85,9 @@ class ShareOptionsDialog extends StatelessWidget {
               icon: Icons.link,
               iconColor: Colors.green,
               title: '复制视频链接',
-              subtitle: 'bilibili.com/video/${item.bvid}',
+              subtitle: 'bilibili.com/video/${widget.item.bvid}',
               onTap: () async {
-                await shareService.copyVideoUrl(item.bvid);
+                await shareService.copyVideoUrl(widget.item.bvid);
                 if (context.mounted) {
                   Navigator.of(context).pop();
                   _showSnackBar(context, '已复制链接');
@@ -94,7 +101,10 @@ class ShareOptionsDialog extends StatelessWidget {
               title: '复制完整信息',
               subtitle: '包含标题、排名、数据等',
               onTap: () async {
-                await shareService.copyVideoInfo(item, rank: rank);
+                await shareService.copyVideoInfo(
+                  widget.item,
+                  rank: widget.rank,
+                );
                 if (context.mounted) {
                   Navigator.of(context).pop();
                   _showSnackBar(context, '已复制完整信息');
@@ -103,12 +113,46 @@ class ShareOptionsDialog extends StatelessWidget {
             ),
             _buildOption(
               context,
+              icon: Icons.image,
+              iconColor: Colors.purple,
+              title: '生成分享卡片',
+              subtitle: _isGeneratingScreenshot ? '生成中...' : '生成精美图片分享',
+              onTap: _isGeneratingScreenshot
+                  ? () {} // 空回调，禁用点击
+                  : () async {
+                      setState(() => _isGeneratingScreenshot = true);
+                      try {
+                        await shareService.shareScreenshot(
+                          context,
+                          widget.item,
+                          rank: widget.rank,
+                        );
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          _showSnackBar(context, '分享卡片已生成');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          _showSnackBar(context, '生成失败: $e');
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isGeneratingScreenshot = false);
+                        }
+                      }
+                    },
+            ),
+            _buildOption(
+              context,
               icon: Icons.share,
               iconColor: Colors.blue,
               title: '系统分享',
               subtitle: '通过其他应用分享',
               onTap: () async {
-                await shareService.shareVideoInfo(item, rank: rank);
+                await shareService.shareVideoInfo(
+                  widget.item,
+                  rank: widget.rank,
+                );
                 if (context.mounted) {
                   Navigator.of(context).pop();
                 }

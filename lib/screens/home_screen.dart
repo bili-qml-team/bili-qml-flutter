@@ -7,6 +7,8 @@ import '../widgets/widgets.dart';
 import '../theme/colors.dart';
 import 'video_screen.dart';
 import 'settings_screen.dart';
+import 'favorites_screen.dart';
+import 'history_screen.dart';
 
 /// 主页 - 排行榜
 class HomeScreen extends StatefulWidget {
@@ -85,6 +87,28 @@ class _HomeScreenState extends State<HomeScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const Spacer(),
+          // 浏览历史按钮
+          IconButton(
+            icon: Icon(
+              Icons.history,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+            onPressed: () => _openHistory(context),
+            tooltip: '浏览历史',
+          ),
+          // 收藏按钮
+          IconButton(
+            icon: Icon(
+              Icons.favorite,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+            onPressed: () => _openFavorites(context),
+            tooltip: '我的收藏',
+          ),
           // BV号搜索按钮
           IconButton(
             icon: Icon(
@@ -282,6 +306,18 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+  }
+
+  void _openFavorites(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const FavoritesScreen()));
+  }
+
+  void _openHistory(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const HistoryScreen()));
   }
 
   void _openVideo(BuildContext context, String bvid, String? title) {
