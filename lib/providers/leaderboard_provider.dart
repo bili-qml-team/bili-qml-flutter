@@ -13,6 +13,10 @@ class LeaderboardProvider extends ChangeNotifier {
   String? _error;
   bool _requiresCaptcha = false;
 
+  // 分页相关
+  int _currentPage = 1;
+  static const int _maxPage = 10; // API 支持的最大页数
+
   // 搜索/筛选相关
   String? _searchQuery;
   String? _upNameFilter;
@@ -29,6 +33,12 @@ class LeaderboardProvider extends ChangeNotifier {
   String? get searchQuery => _searchQuery;
   String? get upNameFilter => _upNameFilter;
   bool get hasActiveFilters => _searchQuery != null || _upNameFilter != null;
+
+  // 分页相关 getters
+  int get currentPage => _currentPage;
+  int get maxPage => _maxPage;
+  bool get canGoPreviousPage => _currentPage > 1;
+  bool get canGoNextPage => _currentPage < _maxPage;
 
   /// 获取过滤后的列表
   List<LeaderboardItem> _getFilteredItems() {
@@ -84,8 +94,30 @@ class LeaderboardProvider extends ChangeNotifier {
     if (_currentRange == range && _items.isNotEmpty) return;
 
     _currentRange = range;
+    _currentPage = 1; // 切换范围时重置到第一页
     notifyListeners();
     await fetchLeaderboard();
+  }
+
+  /// 跳转到指定页
+  Future<void> goToPage(int page) async {
+    if (page < 1 || page > _maxPage || page == _currentPage) return;
+
+    _currentPage = page;
+    notifyListeners();
+    await fetchLeaderboard();
+  }
+
+  /// 上一页
+  Future<void> previousPage() async {
+    if (!canGoPreviousPage) return;
+    await goToPage(_currentPage - 1);
+  }
+
+  /// 下一页
+  Future<void> nextPage() async {
+    if (!canGoNextPage) return;
+    await goToPage(_currentPage + 1);
   }
 
   /// 获取排行榜数据
@@ -99,6 +131,7 @@ class LeaderboardProvider extends ChangeNotifier {
       final response = await _apiService.getLeaderboard(
         _currentRange,
         altcha: altchaSolution,
+        page: _currentPage,
       );
 
       if (response.requiresCaptcha) {

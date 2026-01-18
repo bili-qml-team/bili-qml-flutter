@@ -85,10 +85,15 @@ class ApiService {
   Future<LeaderboardResponse> getLeaderboard(
     LeaderboardRange range, {
     String? altcha,
+    int page = 1,
   }) async {
+    // API 支持的页数范围是 1-10
+    final validPage = page.clamp(1, 10);
+
     final queryParams = {
       'range': range.value,
       'type': '2', // 仅返回 BVID 和票数
+      'page': validPage.toString(),
     };
     if (altcha != null) {
       queryParams['altcha'] = altcha;

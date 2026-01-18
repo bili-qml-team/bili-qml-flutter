@@ -184,7 +184,13 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        return _buildGrid(context, provider);
+        // 将网格和分页控件放在 Column 中
+        return Column(
+          children: [
+            Expanded(child: _buildGrid(context, provider)),
+            _buildPaginationControls(context, provider),
+          ],
+        );
       },
     );
   }
@@ -555,5 +561,81 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return null;
+  }
+
+  /// 构建分页控件
+  Widget _buildPaginationControls(
+    BuildContext context,
+    LeaderboardProvider provider,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.black12 : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 上一页按钮
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: provider.canGoPreviousPage && !provider.isLoading
+                ? () => provider.previousPage()
+                : null,
+            tooltip: '上一页',
+          ),
+          const SizedBox(width: 8),
+          // 页码显示
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.biliBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${provider.currentPage}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.biliBlue,
+                  ),
+                ),
+                Text(
+                  ' / ${provider.maxPage}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 下一页按钮
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: provider.canGoNextPage && !provider.isLoading
+                ? () => provider.nextPage()
+                : null,
+            tooltip: '下一页',
+          ),
+        ],
+      ),
+    );
   }
 }
