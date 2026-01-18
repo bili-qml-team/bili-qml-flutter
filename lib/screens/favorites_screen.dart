@@ -74,21 +74,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             return _buildEmptyState(isDark);
           }
 
-          // 收藏列表
+          // 收藏列表（按日期分组）
+          final grouped = provider.getGroupedByDate();
           return RefreshIndicator(
             onRefresh: () => provider.loadFavorites(),
-            child: GridView.builder(
+            child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: provider.favorites.length,
+              itemCount: grouped.length,
               itemBuilder: (context, index) {
-                final item = provider.favorites[index];
-                return _buildFavoriteCard(context, item, isDark);
+                final dateKey = grouped.keys.elementAt(index);
+                final items = grouped[dateKey]!;
+                return _buildDateGroup(context, dateKey, items, isDark);
               },
             ),
           );
@@ -134,38 +130,72 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
+  Widget _buildDateGroup(
+    BuildContext context,
+    String dateKey,
+    List<FavoriteItem> items,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 日期标题
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            dateKey,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+          ),
+        ),
+        // 该日期的收藏
+        ...items.map((item) => _buildFavoriteCard(context, item, isDark)),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   Widget _buildFavoriteCard(
     BuildContext context,
     FavoriteItem item,
     bool isDark,
   ) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => VideoScreen(bvid: item.bvid)));
-      },
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 封面图
-            AspectRatio(
-              aspectRatio: 16 / 10,
-              child: item.picUrl != null && item.picUrl!.isNotEmpty
-                  ? Image.network(
-                      item.picUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildPlaceholder(isDark),
-                    )
-                  : _buildPlaceholder(isDark),
-            ),
-            // 视频信息
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => VideoScreen(bvid: item.bvid)),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // 封面图
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  width: 120,
+                  height: 75,
+                  child: item.picUrl != null && item.picUrl!.isNotEmpty
+                      ? Image.network(
+                          item.picUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildPlaceholder(isDark),
+                        )
+                      : _buildPlaceholder(isDark),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 视频信息
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -175,11 +205,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 4),
                     // UP主
                     if (item.ownerName != null && item.ownerName!.isNotEmpty)
                       Text(
@@ -187,7 +217,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: isDark
                               ? AppColors.darkTextSecondary
                               : AppColors.lightTextSecondary,
@@ -197,7 +227,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     Text(
                       _formatSavedTime(item.savedAt),
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 11,
                         color: isDark
                             ? AppColors.darkTextSecondary.withValues(alpha: 0.7)
                             : AppColors.lightTextSecondary.withValues(
@@ -208,23 +238,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ],
                 ),
               ),
-            ),
-            // 操作按钮
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => _showRemoveDialog(context, item),
-                    icon: const Icon(Icons.delete, size: 16),
-                    label: const Text('移除', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              // 删除按钮
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => _showRemoveDialog(context, item),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: '移除',
+              ),
+            ],
+          ),
         ),
       ),
     );

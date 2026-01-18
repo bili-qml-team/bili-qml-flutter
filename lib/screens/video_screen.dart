@@ -28,8 +28,6 @@ class _VideoScreenState extends State<VideoScreen> {
   void initState() {
     super.initState();
     _loadData();
-    // 自动记录浏览历史
-    _recordHistory();
   }
 
   String get _videoUrl => 'https://www.bilibili.com/video/${widget.bvid}';
@@ -38,7 +36,12 @@ class _VideoScreenState extends State<VideoScreen> {
   Future<void> _recordHistory() async {
     try {
       final historyProvider = context.read<HistoryProvider>();
-      await historyProvider.addHistory(widget.bvid, title: widget.title);
+      await historyProvider.addHistory(
+        widget.bvid,
+        title: _videoInfo?.title ?? widget.title,
+        picUrl: _videoInfo?.pic,
+        ownerName: _videoInfo?.ownerName,
+      );
     } catch (e) {
       debugPrint('记录浏览历史失败: $e');
     }
@@ -68,6 +71,8 @@ class _VideoScreenState extends State<VideoScreen> {
           .then((info) {
             if (mounted && info != null) {
               setState(() => _videoInfo = info);
+              // 在获取到视频信息后记录浏览历史
+              _recordHistory();
             }
           })
           .catchError((e) {

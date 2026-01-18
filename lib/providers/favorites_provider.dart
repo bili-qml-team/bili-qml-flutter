@@ -157,4 +157,39 @@ class FavoritesProvider extends FilterableProvider<FavoriteItem> {
       return false;
     }
   }
+
+  /// 按日期分组收藏（使用筛选后的数据）
+  Map<String, List<FavoriteItem>> getGroupedByDate() {
+    final Map<String, List<FavoriteItem>> grouped = {};
+
+    for (final item in items) {
+      // 使用筛选后的 items
+      final dateKey = _getDateKey(item.savedAt);
+      if (!grouped.containsKey(dateKey)) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey]!.add(item);
+    }
+
+    return grouped;
+  }
+
+  String _getDateKey(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final itemDate = DateTime(date.year, date.month, date.day);
+
+    if (itemDate == today) {
+      return '今天';
+    } else if (itemDate == yesterday) {
+      return '昨天';
+    } else if (now.difference(itemDate).inDays < 7) {
+      return '本周';
+    } else if (date.year == now.year && date.month == now.month) {
+      return '本月';
+    } else {
+      return '${date.year}年${date.month}月';
+    }
+  }
 }
