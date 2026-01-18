@@ -39,10 +39,10 @@ class LeaderboardTabs extends StatelessWidget {
             if (onSearchPressed != null) ...[
               const SizedBox(width: 8),
               _TabButton(
-                label: '查找',
+                label: '筛选',
                 isSelected: false,
                 onTap: onSearchPressed!,
-                icon: Icons.search,
+                icon: Icons.filter_list,
               ),
             ],
           ],

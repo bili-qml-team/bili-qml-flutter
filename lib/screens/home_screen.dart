@@ -85,61 +85,72 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const Spacer(),
-          // 浏览历史按钮
-          IconButton(
-            icon: Icon(
-              Icons.history,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
+          const SizedBox(width: 12),
+          // 按钮区域 - 使用 Expanded + SingleChildScrollView 处理溢出
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // 浏览历史按钮
+                  IconButton(
+                    icon: Icon(
+                      Icons.history,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                    onPressed: () => _openHistory(context),
+                    tooltip: '浏览历史',
+                  ),
+                  // 收藏按钮
+                  IconButton(
+                    icon: Icon(
+                      Icons.favorite,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                    onPressed: () => _openFavorites(context),
+                    tooltip: '我的收藏',
+                  ),
+                  // BV号搜索按钮
+                  IconButton(
+                    icon: Icon(
+                      Icons.video_library,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                    onPressed: () => _showBvSearchDialog(context),
+                    tooltip: '搜索BV号',
+                  ),
+                  // 主题切换按钮
+                  IconButton(
+                    icon: Icon(
+                      isDark ? Icons.light_mode : Icons.dark_mode,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                    onPressed: () => _toggleTheme(context),
+                    tooltip: '切换主题',
+                  ),
+                  // 设置按钮
+                  IconButton(
+                    icon: Icon(
+                      Icons.settings,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                    onPressed: () => _openSettings(context),
+                    tooltip: '设置',
+                  ),
+                ],
+              ),
             ),
-            onPressed: () => _openHistory(context),
-            tooltip: '浏览历史',
-          ),
-          // 收藏按钮
-          IconButton(
-            icon: Icon(
-              Icons.favorite,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-            ),
-            onPressed: () => _openFavorites(context),
-            tooltip: '我的收藏',
-          ),
-          // BV号搜索按钮
-          IconButton(
-            icon: Icon(
-              Icons.video_library,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-            ),
-            onPressed: () => _showBvSearchDialog(context),
-            tooltip: '搜索BV号',
-          ),
-          // 主题切换按钮
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-            ),
-            onPressed: () => _toggleTheme(context),
-            tooltip: '切换主题',
-          ),
-          // 设置按钮
-          IconButton(
-            icon: Icon(
-              Icons.settings,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-            ),
-            onPressed: () => _openSettings(context),
-            tooltip: '设置',
           ),
         ],
       ),
@@ -245,6 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildGrid(BuildContext context, LeaderboardProvider provider) {
     final settingsProvider = context.watch<SettingsProvider>();
+    // 假设每页20条数据（基于常见API设计）
+    const int itemsPerPage = 20;
 
     return RefreshIndicator(
       onRefresh: () => provider.refresh(),
@@ -271,9 +284,12 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: provider.items.length,
             itemBuilder: (context, index) {
               final item = provider.items[index];
+              // 根据当前页码和索引计算真实排名
+              final actualRank =
+                  (provider.currentPage - 1) * itemsPerPage + index + 1;
               return VideoCard(
                 item: item,
-                rank: index + 1,
+                rank: actualRank,
                 isRank1Custom: settingsProvider.isRank1Custom,
                 onTap: () => _openVideo(context, item.bvid, item.title),
               );
