@@ -94,6 +94,7 @@ class ApiService {
       'range': range.value,
       'type': '2', // 仅返回 BVID 和票数
       'page': validPage.toString(),
+      '_t': DateTime.now().millisecondsSinceEpoch.toString(), // 防止缓存
     };
     if (altcha != null) {
       queryParams['altcha'] = altcha;

@@ -111,6 +111,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     notifyListeners();
 
     try {
+      debugPrint('Fetching leaderboard: range=$_currentRange, page=$_currentPage');
       final response = await _apiService.getLeaderboard(
         _currentRange,
         altcha: altchaSolution,
@@ -121,6 +122,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         _requiresCaptcha = true;
         _error = '需要人机验证';
       } else if (response.success) {
+        debugPrint('Received ${response.list.length} items for page $_currentPage');
         rawItems = response.list; // 使用基类的 rawItems setter
         // 异步加载视频详情
         _loadVideoDetails();
