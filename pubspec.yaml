@@ -29,7 +29,7 @@ dependencies:
   # webview_windows: ^0.4.0
   
   # 路由管理
-  go_router: ^14.0.0
+  go_router: ^17.0.0
   
   # URL 启动器（打开外部链接）
   url_launcher: ^6.3.0
@@ -41,7 +41,7 @@ dependencies:
   cached_network_image: ^3.4.0
   
   # 分享功能
-  share_plus: ^10.1.2
+  share_plus: ^12.0.0
   
   # 截图功能
   screenshot: ^3.0.0
