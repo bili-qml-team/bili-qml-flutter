@@ -56,6 +56,9 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   List<LeaderboardItem> get rawItems => _allItems;
 
   @override
+  List<LeaderboardItem> get items => filterEngine.filter(_allItems, criteria);
+
+  @override
   set rawItems(List<LeaderboardItem> items) {
     // 在无限滚动模式下不直接设置，使用 _allItems
   }

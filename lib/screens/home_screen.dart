@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
@@ -20,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _intentSub;
 
   @override
   void initState() {
@@ -31,10 +34,108 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 监听滚动事件，实现无限滚动
     _scrollController.addListener(_onScroll);
+
+    // 处理应用启动时的分享内容
+    _handleInitialSharedData();
+
+    // 监听运行时的分享内容
+    _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen(
+      (List<SharedMediaFile> value) {
+        _processSharedMedia(value);
+      },
+      onError: (err) {
+        debugPrint('分享接收错误: $err');
+      },
+    );
+  }
+
+  /// 处理应用启动时的分享内容
+  Future<void> _handleInitialSharedData() async {
+    final sharedMedia = await ReceiveSharingIntent.instance.getInitialMedia();
+    if (sharedMedia.isNotEmpty) {
+      _processSharedMedia(sharedMedia);
+    }
+  }
+
+  /// 处理分享的媒体内容
+  Future<void> _processSharedMedia(List<SharedMediaFile> sharedMedia) async {
+    if (sharedMedia.isEmpty) return;
+
+    // 获取分享的文本内容
+    String? sharedText;
+    for (final media in sharedMedia) {
+      if (media.type == SharedMediaType.text || media.path.isNotEmpty) {
+        final text = media.message ?? media.path;
+        if (text.isNotEmpty) {
+          sharedText = text;
+          break;
+        }
+      }
+    }
+
+    if (sharedText == null || sharedText.isEmpty) return;
+
+    debugPrint('收到分享内容: $sharedText');
+
+    // 解析BV号
+    await _parseAndNavigate(sharedText);
+
+    // 清除已处理的分享内容
+    ReceiveSharingIntent.instance.reset();
+  }
+
+  /// 解析分享内容并导航
+  Future<void> _parseAndNavigate(String text) async {
+    final bvidParser = BvidParserService();
+
+    // 显示加载提示
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('正在解析分享内容...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    try {
+      String? bvid;
+
+      // 检查是否为短链接
+      if (bvidParser.isShortLink(text)) {
+        bvid = await bvidParser.parseAsync(text);
+      } else {
+        bvid = bvidParser.parseBvid(text);
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // 关闭加载对话框
+
+      if (bvid != null && bvid.isNotEmpty) {
+        // 成功解析，跳转到视频详情页
+        _openVideo(context, bvid, null);
+      } else {
+        // 解析失败，显示提示
+        _showErrorSnackBar('无法从分享内容中解析出BV号');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // 关闭加载对话框
+      _showErrorSnackBar('解析分享内容失败: $e');
+    }
   }
 
   @override
   void dispose() {
+    _intentSub?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
@@ -117,6 +218,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const Spacer(),
+          // 搜索按钮
+          IconButton(
+            icon: Icon(
+              Icons.search,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+            onPressed: () => _showBvSearchDialog(context),
+            tooltip: '搜索BV号',
+          ),
           // 菜单按钮
           IconButton(
             icon: Icon(

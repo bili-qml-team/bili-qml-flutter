@@ -19,6 +19,10 @@ abstract class FilterableProvider<T> extends ChangeNotifier {
   /// 是否已初始化筛选引擎
   bool _isEngineInitialized = false;
 
+  /// 获取筛选引擎（供子类使用）
+  @protected
+  FilterEngine<T> get filterEngine => _filterEngine;
+
   FilterableProvider() {
     _initializeFilterEngine();
   }

@@ -47,6 +47,9 @@ dependencies:
   screenshot: ^3.0.0
   path_provider: ^2.1.5
 
+  # 接收分享内容
+  receive_sharing_intent: ^1.8.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
