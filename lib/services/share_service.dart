@@ -12,13 +12,13 @@ class ShareService {
   /// 分享视频完整信息（标题 + 链接 + 排名）
   Future<void> shareVideoInfo(LeaderboardItem item, {int? rank}) async {
     final text = _generateShareText(item, rank: rank);
-    await Share.share(text);
+    await SharePlus.instance.share(ShareParams(text: text));
   }
 
   /// 分享视频链接
   Future<void> shareVideoUrl(String bvid) async {
     final url = _getVideoUrl(bvid);
-    await Share.share(url);
+    await SharePlus.instance.share(ShareParams(text: url));
   }
 
   /// 复制 BV 号到剪贴板
@@ -65,9 +65,12 @@ class ShareService {
       await file.writeAsBytes(imageBytes);
 
       // 分享文件
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: '${item.title ?? item.bvid} - B站问号榜');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: '${item.title ?? item.bvid} - B站问号榜',
+        ),
+      );
     } catch (e) {
       debugPrint('生成分享截图失败: $e');
       rethrow;
