@@ -18,6 +18,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +28,27 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LeaderboardProvider>().fetchLeaderboard();
     });
+
+    // 监听滚动事件，实现无限滚动
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      // 距离底部 200 像素时开始加载更多
+      final provider = context.read<LeaderboardProvider>();
+      if (provider.canLoadMore) {
+        provider.loadMore();
+      }
+    }
   }
 
   @override
@@ -33,6 +57,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: AppDrawer(
+        onHistoryTap: () => _openHistory(context),
+        onFavoritesTap: () => _openFavorites(context),
+        onSearchBvTap: () => _showBvSearchDialog(context),
+        onSettingsTap: () => _openSettings(context),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -85,72 +116,17 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(width: 12),
-          // 按钮区域 - 使用 Expanded + SingleChildScrollView 处理溢出
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // 浏览历史按钮
-                  IconButton(
-                    icon: Icon(
-                      Icons.history,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                    onPressed: () => _openHistory(context),
-                    tooltip: '浏览历史',
-                  ),
-                  // 收藏按钮
-                  IconButton(
-                    icon: Icon(
-                      Icons.favorite,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                    onPressed: () => _openFavorites(context),
-                    tooltip: '我的收藏',
-                  ),
-                  // BV号搜索按钮
-                  IconButton(
-                    icon: Icon(
-                      Icons.video_library,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                    onPressed: () => _showBvSearchDialog(context),
-                    tooltip: '搜索BV号',
-                  ),
-                  // 主题切换按钮
-                  IconButton(
-                    icon: Icon(
-                      isDark ? Icons.light_mode : Icons.dark_mode,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                    onPressed: () => _toggleTheme(context),
-                    tooltip: '切换主题',
-                  ),
-                  // 设置按钮
-                  IconButton(
-                    icon: Icon(
-                      Icons.settings,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                    onPressed: () => _openSettings(context),
-                    tooltip: '设置',
-                  ),
-                ],
-              ),
+          const Spacer(),
+          // 菜单按钮
+          IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
             ),
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            tooltip: '菜单',
           ),
         ],
       ),
@@ -194,13 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        // 将网格和分页控件放在 Column 中
-        return Column(
-          children: [
-            Expanded(child: _buildGrid(context, provider)),
-            _buildPaginationControls(context, provider),
-          ],
-        );
+        return _buildGrid(context, provider);
       },
     );
   }
@@ -256,8 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildGrid(BuildContext context, LeaderboardProvider provider) {
     final settingsProvider = context.watch<SettingsProvider>();
-    // 假设每页20条数据（基于常见API设计）
-    const int itemsPerPage = 20;
 
     return RefreshIndicator(
       onRefresh: () => provider.refresh(),
@@ -273,54 +241,82 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisCount = 3;
           }
 
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.75,
-            ),
-            itemCount: provider.items.length,
-            itemBuilder: (context, index) {
-              final item = provider.items[index];
-              // 根据当前页码和索引计算真实排名
-              final actualRank =
-                  (provider.currentPage - 1) * itemsPerPage + index + 1;
-              return VideoCard(
-                item: item,
-                rank: actualRank,
-                isRank1Custom: settingsProvider.isRank1Custom,
-                onTap: () => _openVideo(context, item.bvid, item.title),
-              );
-            },
+          return CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.75,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = provider.items[index];
+                      // 排名就是 index + 1（无限滚动模式）
+                      final actualRank = index + 1;
+                      return VideoCard(
+                        item: item,
+                        rank: actualRank,
+                        isRank1Custom: settingsProvider.isRank1Custom,
+                        onTap: () => _openVideo(context, item.bvid, item.title),
+                      );
+                    },
+                    childCount: provider.items.length,
+                  ),
+                ),
+              ),
+              // 加载更多指示器
+              SliverToBoxAdapter(
+                child: _buildLoadMoreIndicator(provider),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  void _toggleTheme(BuildContext context) {
-    final themeProvider = context.read<ThemeProvider>();
-    final currentMode = themeProvider.themeMode;
-
-    ThemeMode newMode;
-    switch (currentMode) {
-      case ThemeMode.system:
-        final brightness = MediaQuery.of(context).platformBrightness;
-        newMode = brightness == Brightness.dark
-            ? ThemeMode.light
-            : ThemeMode.dark;
-        break;
-      case ThemeMode.light:
-        newMode = ThemeMode.dark;
-        break;
-      case ThemeMode.dark:
-        newMode = ThemeMode.light;
-        break;
+  Widget _buildLoadMoreIndicator(LeaderboardProvider provider) {
+    if (provider.isLoadingMore) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        alignment: Alignment.center,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text('加载更多...'),
+          ],
+        ),
+      );
     }
 
-    themeProvider.setThemeMode(newMode);
+    if (!provider.hasMore && provider.items.isNotEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        alignment: Alignment.center,
+        child: Text(
+          '已加载全部 ${provider.items.length} 条数据',
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkTextTertiary
+                : AppColors.lightTextTertiary,
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox(height: 16);
   }
 
   void _openSettings(BuildContext context) {
@@ -454,82 +450,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
-  }
-
-  /// 构建分页控件
-  Widget _buildPaginationControls(
-    BuildContext context,
-    LeaderboardProvider provider,
-  ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.black12 : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 上一页按钮
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: provider.canGoPreviousPage && !provider.isLoading
-                ? () => provider.previousPage()
-                : null,
-            tooltip: '上一页',
-          ),
-          const SizedBox(width: 8),
-          // 页码显示
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.biliBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${provider.currentPage}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.biliBlue,
-                  ),
-                ),
-                Text(
-                  ' / ${provider.maxPage}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // 下一页按钮
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: provider.canGoNextPage && !provider.isLoading
-                ? () => provider.nextPage()
-                : null,
-            tooltip: '下一页',
-          ),
-        ],
-      ),
     );
   }
 }

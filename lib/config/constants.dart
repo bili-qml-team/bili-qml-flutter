@@ -12,6 +12,11 @@ class ApiConfig {
   static const String storageKeyTheme = 'theme';
   static const String storageKeyRank1Setting = 'rank1Setting';
   static const String storageKeyUserId = 'userId';
+
+  /// 排行榜缓存相关
+  static const String storageKeyLeaderboardCache = 'leaderboard_cache';
+  static const String storageKeyLeaderboardCacheTime = 'leaderboard_cache_time';
+  static const int leaderboardCacheDuration = 10 * 60 * 1000; // 10分钟（毫秒）
 }
 
 /// 排行榜时间范围

@@ -60,7 +60,9 @@ class BiliQmlApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => SettingsProvider(storageService, apiService),
         ),
-        ChangeNotifierProvider(create: (_) => LeaderboardProvider(apiService)),
+        ChangeNotifierProvider(
+          create: (_) => LeaderboardProvider(apiService, storageService.prefs),
+        ),
         ChangeNotifierProvider(
           create: (_) => FavoritesProvider(favoritesService)..init(),
         ),
