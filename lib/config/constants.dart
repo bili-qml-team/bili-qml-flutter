@@ -16,7 +16,7 @@ class ApiConfig {
   /// 排行榜缓存相关
   static const String storageKeyLeaderboardCache = 'leaderboard_cache';
   static const String storageKeyLeaderboardCacheTime = 'leaderboard_cache_time';
-  static const int leaderboardCacheDuration = 10 * 60 * 1000; // 10分钟（毫秒）
+  static const int leaderboardCacheDuration = 2 * 60 * 1000; // 2分钟（毫秒）
 }
 
 /// 排行榜时间范围
