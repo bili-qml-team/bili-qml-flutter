@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:share_handler/share_handler.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
@@ -35,12 +35,27 @@ class _HomeScreenState extends State<HomeScreen> {
     // 监听滚动事件，实现无限滚动
     _scrollController.addListener(_onScroll);
 
-    // 处理应用启动时的分享内容
-    _handleInitialSharedData();
+    // 初始化分享监听
+    _initShareListener();
+  }
 
-    // 监听运行时的分享内容
-    _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen(
-      (List<SharedMediaFile> value) {
+  /// 初始化分享监听
+  Future<void> _initShareListener() async {
+    // 1. 处理应用冷启动时的分享内容
+    try {
+      final initialShared = await ShareHandler.instance.getInitialSharedMedia();
+      if (initialShared != null) {
+        _processSharedContent(initialShared);
+        // 清除初始分享内容，防止热重载或重新初始化时重复处理
+        await ShareHandler.instance.resetInitialSharedMedia();
+      }
+    } catch (e) {
+      debugPrint('获取初始分享内容失败: $e');
+    }
+
+    // 2. 监听运行时的分享内容
+    _intentSub = ShareHandler.instance.sharedMediaStream.listen(
+      (SharedMedia value) {
         _processSharedMedia(value);
       },
       onError: (err) {
@@ -49,39 +64,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 处理应用启动时的分享内容
-  Future<void> _handleInitialSharedData() async {
-    final sharedMedia = await ReceiveSharingIntent.instance.getInitialMedia();
-    if (sharedMedia.isNotEmpty) {
-      _processSharedMedia(sharedMedia);
+  /// 处理 SharedMedia 对象（来自 Stream）
+  void _processSharedMedia(SharedMedia media) {
+    if (media.content != null && media.content!.isNotEmpty) {
+      // 优先使用 content (通常是文本或链接)
+      _handleSharedText(media.content!);
+    } else if (media.attachments != null && media.attachments!.isNotEmpty) {
+      // 如果有附件，尝试从附件路径中获取信息（虽然当前只处理文本）
+      // 这里暂时不需要专门处理文件，我们的场景主要是 BV 号文本
     }
   }
 
-  /// 处理分享的媒体内容
-  Future<void> _processSharedMedia(List<SharedMediaFile> sharedMedia) async {
-    if (sharedMedia.isEmpty) return;
+  /// 处理 initialShared 对象（结构可能不同，视插件版本而定，share_handler 统一使用 SharedMedia）
+  void _processSharedContent(SharedMedia media) {
+    _processSharedMedia(media);
+  }
 
-    // 获取分享的文本内容
-    String? sharedText;
-    for (final media in sharedMedia) {
-      if (media.type == SharedMediaType.text || media.path.isNotEmpty) {
-        final text = media.message ?? media.path;
-        if (text.isNotEmpty) {
-          sharedText = text;
-          break;
-        }
-      }
-    }
-
-    if (sharedText == null || sharedText.isEmpty) return;
-
-    debugPrint('收到分享内容: $sharedText');
-
-    // 解析BV号
-    await _parseAndNavigate(sharedText);
-
-    // 清除已处理的分享内容
-    ReceiveSharingIntent.instance.reset();
+  /// 处理分享的文本
+  Future<void> _handleSharedText(String text) async {
+    if (text.isEmpty) return;
+    debugPrint('收到分享内容: $text');
+    await _parseAndNavigate(text);
   }
 
   /// 解析分享内容并导航
@@ -366,26 +369,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisSpacing: 12,
                     childAspectRatio: 0.75,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final item = provider.items[index];
-                      // 排名就是 index + 1（无限滚动模式）
-                      final actualRank = index + 1;
-                      return VideoCard(
-                        item: item,
-                        rank: actualRank,
-                        isRank1Custom: settingsProvider.isRank1Custom,
-                        onTap: () => _openVideo(context, item.bvid, item.title),
-                      );
-                    },
-                    childCount: provider.items.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final item = provider.items[index];
+                    // 排名就是 index + 1（无限滚动模式）
+                    final actualRank = index + 1;
+                    return VideoCard(
+                      item: item,
+                      rank: actualRank,
+                      isRank1Custom: settingsProvider.isRank1Custom,
+                      onTap: () => _openVideo(context, item.bvid, item.title),
+                    );
+                  }, childCount: provider.items.length),
                 ),
               ),
               // 加载更多指示器
-              SliverToBoxAdapter(
-                child: _buildLoadMoreIndicator(provider),
-              ),
+              SliverToBoxAdapter(child: _buildLoadMoreIndicator(provider)),
             ],
           );
         },
