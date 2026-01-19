@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_handler/share_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
@@ -185,6 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             // 排行榜列表
             Expanded(child: _buildLeaderboardContent()),
+            // 备案号区域
+            _buildIcpFooter(context),
           ],
         ),
       ),
@@ -561,5 +565,53 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
+  }
+
+  Widget _buildIcpFooter(BuildContext context) {
+    if (!kIsWeb) {
+      return const SizedBox.shrink();
+    }
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: () => _launchUrl('https://beian.miit.gov.cn/'),
+            child: Text(
+              'ICP备案号：京ICP备12345678号',
+              style: TextStyle(
+                color: isDark ? AppColors.biliBlue : Colors.blue,
+                fontSize: 12,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: () => _launchUrl('https://www.beian.gov.cn/portal/registerSystemInfo'),
+            child: Text(
+              '公安备案号：京公网安备 11000002000001号',
+              style: TextStyle(
+                color: isDark ? AppColors.biliBlue : Colors.blue,
+                fontSize: 12,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
