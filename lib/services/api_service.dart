@@ -141,11 +141,10 @@ class ApiService {
       final Uri uri;
       if (kIsWeb) {
         final baseUri = Uri.parse(_apiBase);
-        final basePath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
+        final rawPath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
+        final basePath = rawPath == '/' ? '' : rawPath;
         final proxyPath =
-            basePath.endsWith('/api')
-                ? '$basePath/view'
-                : '$basePath/api/view';
+            basePath.isEmpty ? '/api/view' : '$basePath/view';
         uri = baseUri.replace(
           path: proxyPath,
           queryParameters: _attachOriginParam({'bvid': bvid}),
