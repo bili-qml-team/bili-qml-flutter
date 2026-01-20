@@ -25,14 +25,24 @@ class ApiService {
     'Accept': 'application/json',
   };
 
+  String? get _originParam => kIsWeb ? Uri.base.origin : null;
+
+  Map<String, String> _attachOriginParam(Map<String, String> params) {
+    final origin = _originParam;
+    if (origin == null) {
+      return params;
+    }
+    return {...params, 'origin': origin};
+  }
+
   /// 获取投票状态
   Future<UserStatus> getStatus(String bvid, String? userId) async {
     final uri = Uri.parse('$_apiBase/status').replace(
-      queryParameters: {
+      queryParameters: _attachOriginParam({
         'bvid': bvid,
         if (userId != null) 'userId': userId,
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-      },
+      }),
     );
 
     final response = await http.get(uri, headers: _headers);
@@ -66,11 +76,11 @@ class ApiService {
     String? altcha,
   }) async {
     final uri = Uri.parse('$_apiBase/$endpoint');
-    final body = {
+    final body = _attachOriginParam({
       'bvid': bvid,
       'userId': userId,
       if (altcha != null) 'altcha': altcha,
-    };
+    });
 
     final response = await http.post(
       uri,
@@ -103,7 +113,7 @@ class ApiService {
 
     final uri = Uri.parse(
       '$_apiBase/leaderboard',
-    ).replace(queryParameters: queryParams);
+    ).replace(queryParameters: _attachOriginParam(queryParams));
 
     debugPrint('API Request URL: $uri');
     final response = await http.get(uri, headers: _headers);
@@ -116,7 +126,9 @@ class ApiService {
 
   /// 获取 Altcha 挑战
   Future<AltchaChallenge> getAltchaChallenge() async {
-    final uri = Uri.parse('$_apiBase/altcha/challenge');
+    final uri = Uri.parse(
+      '$_apiBase/altcha/challenge',
+    ).replace(queryParameters: _attachOriginParam({}));
     final response = await http.get(uri, headers: _headers);
     final json = jsonDecode(response.body) as Map<String, dynamic>;
 
