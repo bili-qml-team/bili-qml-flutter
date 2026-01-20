@@ -47042,7 +47042,7 @@ f=l.gdt()
 e=A.bJ("/+$",!0,!1)
 k=A.pi(f,e,"")
 j=J.d(k,"/")?"":k
-i=J.bI(j)===0?"/api/view":A.j(j)+"/view"
+i=J.bI(j)===0?"/api/x/web-interface/view":A.j(j)+"/x/web-interface/view"
 f=t.N
 m=l.a1q(i,n.ui(A.ao(["bvid",a4],f,f)))
 s=7
