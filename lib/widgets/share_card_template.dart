@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../models/models.dart';
-import '../services/image_proxy_service.dart';
 import '../theme/colors.dart';
+import 'proxied_image.dart';
 
 /// 分享卡片模板（用于截图）
 class ShareCardTemplate extends StatelessWidget {
@@ -71,17 +70,14 @@ class ShareCardTemplate extends StatelessWidget {
           if (item.picUrl != null && item.picUrl!.isNotEmpty)
             AspectRatio(
               aspectRatio: 16 / 10,
-              child: CachedNetworkImage(
-                imageUrl: ImageProxyService.getProxiedImageUrl(
-                  context,
-                  item.picUrl,
-                ),
+              child: ProxiedImage(
+                imageUrl: item.picUrl,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
+                placeholder: Container(
                   color: Colors.grey[200],
                   child: const Center(child: CircularProgressIndicator()),
                 ),
-                errorWidget: (context, url, error) => Container(
+                errorBuilder: (context, error, stackTrace) => Container(
                   color: Colors.grey[200],
                   child: const Icon(
                     Icons.broken_image,
