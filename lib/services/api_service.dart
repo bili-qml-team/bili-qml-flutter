@@ -138,9 +138,23 @@ class ApiService {
   /// 获取 B站视频信息
   Future<VideoInfo?> getBilibiliVideoInfo(String bvid) async {
     try {
-      final uri = Uri.parse(
-        '${ApiConfig.bilibiliApiBase}/x/web-interface/view?bvid=$bvid',
-      );
+      final Uri uri;
+      if (kIsWeb) {
+        final baseUri = Uri.parse(_apiBase);
+        final basePath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
+        final proxyPath =
+            basePath.endsWith('/api')
+                ? '$basePath/view'
+                : '$basePath/api/view';
+        uri = baseUri.replace(
+          path: proxyPath,
+          queryParameters: _attachOriginParam({'bvid': bvid}),
+        );
+      } else {
+        uri = Uri.parse(
+          '${ApiConfig.bilibiliApiBase}/x/web-interface/view?bvid=$bvid',
+        );
+      }
       final response = await http.get(uri);
       final json = jsonDecode(response.body) as Map<String, dynamic>;
 
