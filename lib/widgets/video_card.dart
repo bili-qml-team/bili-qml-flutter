@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/image_proxy_service.dart';
 import '../theme/colors.dart';
 import 'share_options_dialog.dart';
 
@@ -114,7 +115,10 @@ class _VideoCardState extends State<VideoCard> {
     }
 
     return CachedNetworkImage(
-      imageUrl: widget.item.picUrl!.replaceFirst('http:', 'https:'),
+      imageUrl: ImageProxyService.getProxiedImageUrl(
+        context,
+        widget.item.picUrl,
+      ),
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
         color: Colors.grey[300],
