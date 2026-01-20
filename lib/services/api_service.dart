@@ -140,9 +140,16 @@ class ApiService {
     try {
       final Uri uri;
       if (kIsWeb) {
-        uri = Uri.parse(
-          '$_apiBase/view',
-        ).replace(queryParameters: _attachOriginParam({'bvid': bvid}));
+        final baseUri = Uri.parse(_apiBase);
+        final basePath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
+        final proxyPath =
+            basePath.endsWith('/api')
+                ? '$basePath/view'
+                : '$basePath/api/view';
+        uri = baseUri.replace(
+          path: proxyPath,
+          queryParameters: _attachOriginParam({'bvid': bvid}),
+        );
       } else {
         uri = Uri.parse(
           '${ApiConfig.bilibiliApiBase}/x/web-interface/view?bvid=$bvid',
