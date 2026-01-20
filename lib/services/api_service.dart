@@ -144,7 +144,9 @@ class ApiService {
         final rawPath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
         final basePath = rawPath == '/' ? '' : rawPath;
         final proxyPath =
-            basePath.isEmpty ? '/api/view' : '$basePath/view';
+            basePath.isEmpty
+                ? '/api/x/web-interface/view'
+                : '$basePath/x/web-interface/view';
         uri = baseUri.replace(
           path: proxyPath,
           queryParameters: _attachOriginParam({'bvid': bvid}),
