@@ -55,6 +55,7 @@ class _WebImageState extends State<_WebImage> {
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.objectFit = _getObjectFit()
+        ..style.pointerEvents = 'none'
         ..setAttribute('referrerpolicy', 'no-referrer');
 
       img.onLoad.listen((_) {
