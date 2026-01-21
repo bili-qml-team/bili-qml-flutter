@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
+import 'image_url_service.dart';
 import 'storage_service.dart';
 
 /// 收藏服务类
@@ -21,9 +22,17 @@ class FavoritesService {
       }
 
       final List<dynamic> jsonList = json.decode(jsonString) as List;
-      return jsonList
+      final favoriteItems = jsonList
           .map((item) => FavoriteItem.fromJson(item as Map<String, dynamic>))
           .toList();
+      final sanitizedItems = _sanitizeItems(favoriteItems);
+      if (!_listEquals(favoriteItems, sanitizedItems)) {
+        final jsonString = json.encode(
+          sanitizedItems.map((item) => item.toJson()).toList(),
+        );
+        await _prefs.setString(_storageKey, jsonString);
+      }
+      return sanitizedItems;
     } catch (e) {
       // 如果解析失败，返回空列表并清除损坏的数据
       await _prefs.remove(_storageKey);
@@ -35,14 +44,15 @@ class FavoritesService {
   Future<bool> add(FavoriteItem item) async {
     try {
       final favorites = await getAll();
+      final sanitizedItem = _sanitizeItem(item);
 
       // 检查是否已存在
-      if (favorites.any((fav) => fav.bvid == item.bvid)) {
+      if (favorites.any((fav) => fav.bvid == sanitizedItem.bvid)) {
         return false; // 已存在，不重复添加
       }
 
       // 添加到列表开头（最新的在前面）
-      favorites.insert(0, item);
+      favorites.insert(0, sanitizedItem);
 
       // 保存
       final jsonString = json.encode(
@@ -128,5 +138,29 @@ class FavoritesService {
   Future<int> getCount() async {
     final favorites = await getAll();
     return favorites.length;
+  }
+
+  FavoriteItem _sanitizeItem(FavoriteItem item) {
+    final sanitizedUrl = sanitizeCoverUrl(item.picUrl);
+    if (sanitizedUrl == item.picUrl) {
+      return item;
+    }
+    return item.copyWith(picUrl: sanitizedUrl);
+  }
+
+  List<FavoriteItem> _sanitizeItems(List<FavoriteItem> items) {
+    return items.map(_sanitizeItem).toList();
+  }
+
+  bool _listEquals(List<FavoriteItem> a, List<FavoriteItem> b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].bvid != b[i].bvid || a[i].picUrl != b[i].picUrl) {
+        return false;
+      }
+    }
+    return true;
   }
 }

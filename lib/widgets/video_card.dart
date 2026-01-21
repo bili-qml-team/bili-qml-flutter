@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/services.dart';
 import '../theme/colors.dart';
 import 'share_options_dialog.dart';
 
@@ -113,8 +114,9 @@ class _VideoCardState extends State<VideoCard> {
       );
     }
 
+    final imageUrl = sanitizeCoverUrl(widget.item.picUrl) ?? widget.item.picUrl!;
     return CachedNetworkImage(
-      imageUrl: widget.item.picUrl!.replaceFirst('http:', 'https:'),
+      imageUrl: imageUrl.replaceFirst('http:', 'https:'),
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
         color: Colors.grey[300],
