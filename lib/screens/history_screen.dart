@@ -184,11 +184,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   width: 120,
                   height: 75,
                   child: item.picUrl != null && item.picUrl!.isNotEmpty
-                      ? Image.network(
-                          item.picUrl!,
+                      ? NoReferrerImage(
+                          imageUrl: item.picUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildPlaceholder(isDark),
+                          errorWidget: (context) => _buildPlaceholder(isDark),
                         )
                       : _buildPlaceholder(isDark),
                 ),

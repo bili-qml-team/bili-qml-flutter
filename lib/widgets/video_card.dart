@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../theme/colors.dart';
 import 'share_options_dialog.dart';
+import 'no_referrer_image.dart';
 
 /// 视频卡片组件
 class VideoCard extends StatefulWidget {
@@ -113,14 +113,14 @@ class _VideoCardState extends State<VideoCard> {
       );
     }
 
-    return CachedNetworkImage(
+    return NoReferrerImage(
       imageUrl: widget.item.picUrl!.replaceFirst('http:', 'https:'),
       fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
+      placeholder: (context) => Container(
         color: Colors.grey[300],
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      errorWidget: (context, url, error) => Container(
+      errorWidget: (context) => Container(
         color: Colors.grey[300],
         child: const Center(
           child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
