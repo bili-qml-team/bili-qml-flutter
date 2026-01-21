@@ -7,4 +7,3 @@ export 'favorites_service.dart';
 export 'history_service.dart';
 export 'bvid_parser_service.dart';
 export 'filter/filter.dart';
-export 'image_proxy_service.dart';

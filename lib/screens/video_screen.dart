@@ -325,10 +325,7 @@ class _VideoScreenState extends State<VideoScreen> {
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Image.network(
-                    ImageProxyService.getProxiedImageUrl(
-                      context,
-                      _videoInfo!.pic,
-                    ),
+                    _videoInfo!.pic,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
