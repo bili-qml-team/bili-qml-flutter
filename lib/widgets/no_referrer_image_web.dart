@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
-
 import 'dart:html' as html;
 import 'dart:ui' as ui;
 
@@ -39,11 +37,11 @@ class _NoReferrerImageState extends State<NoReferrerImage> {
     super.initState();
     _viewType = 'no-referrer-image-${_viewIdSeed++}';
     _imageElement = html.ImageElement()
+      ..src = widget.imageUrl
+      ..referrerPolicy = 'no-referrer'
       ..style.width = '100%'
       ..style.height = '100%'
       ..style.objectFit = _cssFit(widget.fit);
-    _imageElement.setAttribute('referrerpolicy', 'no-referrer');
-    _imageElement.src = widget.imageUrl;
 
     _imageElement.onLoad.listen((_) {
       if (mounted) {
@@ -69,9 +67,6 @@ class _NoReferrerImageState extends State<NoReferrerImage> {
       _loaded = false;
       _error = false;
       _imageElement.src = widget.imageUrl;
-    }
-    if (oldWidget.fit != widget.fit) {
-      _imageElement.style.objectFit = _cssFit(widget.fit);
     }
   }
 
