@@ -45919,6 +45919,7 @@ s.src=r.a.c
 s.style.width="100%"
 s.style.height="100%"
 s.style.objectFit=r.abK()
+s.style.pointerEvents="none"
 s.setAttribute("referrerpolicy","no-referrer")
 A.aI6(s,"load",new A.axr(r),!1)
 A.aI6(s,"error",new A.axs(r),!1)
