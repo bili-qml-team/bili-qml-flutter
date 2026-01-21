@@ -241,8 +241,9 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     bool preserveExistingItems = false,
   }) async {
     final shouldPreserveItems = preserveExistingItems && _allItems.isNotEmpty;
-    final existingItems =
-        shouldPreserveItems ? List<LeaderboardItem>.from(_allItems) : null;
+    final existingItems = shouldPreserveItems
+        ? List<LeaderboardItem>.from(_allItems)
+        : null;
 
     if (showLoading) {
       _isLoading = true;
@@ -282,7 +283,9 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
       } else if (response.success) {
         debugPrint('Received ${response.list.length} items for page 1');
         if (response.list.isNotEmpty) {
-          debugPrint('First 3 BVIDs: ${response.list.take(3).map((e) => e.bvid).join(", ")}');
+          debugPrint(
+            'First 3 BVIDs: ${response.list.take(3).map((e) => e.bvid).join(", ")}',
+          );
         }
 
         if (shouldPreserveItems && existingItems != null) {
@@ -299,9 +302,43 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
             ..addAll(response.list);
         }
 
+        // 校验加载的数量是否与 API 返回的数量一致
+        final expectedCount = response.list.length;
+        final actualCount = shouldPreserveItems
+            ? response.list.length
+            : _allItems.length;
+        if (actualCount != expectedCount) {
+          debugPrint(
+            'WARNING: Leaderboard count mismatch! API returned $expectedCount items, but loaded $actualCount items. Attempting to fix...',
+          );
+          // 尝试修复：清空并重新添加
+          if (shouldPreserveItems && existingItems != null) {
+            final preserved = existingItems.length > response.list.length
+                ? existingItems.sublist(response.list.length)
+                : <LeaderboardItem>[];
+            _allItems
+              ..clear()
+              ..addAll(response.list)
+              ..addAll(preserved);
+          } else {
+            _allItems
+              ..clear()
+              ..addAll(response.list);
+          }
+          final fixedCount = shouldPreserveItems
+              ? response.list.length
+              : _allItems.length;
+          if (fixedCount != expectedCount) {
+            debugPrint(
+              'Fix failed: still have $fixedCount items instead of $expectedCount',
+            );
+          }
+        }
+
         final requestId = _detailsRequestId;
-        final detailEnd =
-            shouldPreserveItems ? response.list.length : _allItems.length;
+        final detailEnd = shouldPreserveItems
+            ? response.list.length
+            : _allItems.length;
         _loadVideoDetails(0, detailEnd, requestId);
         await _saveToCache(_currentRange);
       } else {
@@ -340,8 +377,28 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
       if (response.success && response.list.isNotEmpty) {
         final startIndex = _allItems.length;
+        final expectedNewItems = response.list.length;
         _allItems.addAll(response.list);
-        debugPrint('Loaded ${response.list.length} more items, total: ${_allItems.length}');
+        final actualNewItems = _allItems.length - startIndex;
+
+        // 校验加载更多的数量是否与 API 返回的数量一致
+        if (actualNewItems != expectedNewItems) {
+          debugPrint(
+            'WARNING: LoadMore count mismatch! API returned $expectedNewItems items, but added $actualNewItems items. Attempting to fix...',
+          );
+          // 尝试修复：移除新增的项，重新添加
+          if (_allItems.length > startIndex) {
+            _allItems.removeRange(startIndex, _allItems.length);
+          }
+          _allItems.addAll(response.list);
+          final fixedNewItems = _allItems.length - startIndex;
+          if (fixedNewItems != expectedNewItems) {
+            debugPrint(
+              'Fix failed: added $fixedNewItems items instead of $expectedNewItems',
+            );
+          }
+        }
+
         // 异步加载新增项的视频详情
         _loadVideoDetails(startIndex, _allItems.length, _detailsRequestId);
       } else if (!response.success) {

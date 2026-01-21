@@ -24,6 +24,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   StreamSubscription? _intentSub;
 
+  /// 上次触发加载的时间，用于节流
+  int _lastLoadTriggerTime = 0;
+
+  /// 节流间隔，单位毫秒
+  static const int _loadThrottleMs = 300;
+
   @override
   void initState() {
     super.initState();
@@ -31,9 +37,6 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LeaderboardProvider>().fetchLeaderboard();
     });
-
-    // 监听滚动事件，实现无限滚动
-    _scrollController.addListener(_onScroll);
 
     // 初始化分享监听
     _initShareListener();
@@ -139,19 +142,49 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _intentSub?.cancel();
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      // 距离底部 200 像素时开始加载更多
-      final provider = context.read<LeaderboardProvider>();
-      if (provider.canLoadMore) {
-        provider.loadMore();
+  /// 处理滚动事件，检测是否需要加载更多
+  ///
+  /// 优化点：
+  /// 1. 使用 NotificationListener 在 Widget 层处理滚动
+  /// 2. 动态计算预加载阈值为视口高度的 50%
+  /// 3. 添加节流机制避免短时间内重复触发
+  bool _handleScrollNotification(ScrollNotification notification) {
+    // 只处理滚动更新通知
+    if (notification is ScrollUpdateNotification) {
+      final metrics = notification.metrics;
+
+      // 计算动态预加载阈值：视口高度的 50%，最小 200 像素
+      final viewportHeight = metrics.viewportDimension;
+      final preloadThreshold = (viewportHeight * 0.5).clamp(200.0, 600.0);
+
+      // 检查是否接近底部
+      final distanceToBottom = metrics.maxScrollExtent - metrics.pixels;
+
+      if (distanceToBottom <= preloadThreshold) {
+        _tryLoadMore();
       }
+    }
+    // 返回 false 让通知继续传递
+    return false;
+  }
+
+  /// 尝试加载更多数据，带节流
+  void _tryLoadMore() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // 节流：避免短时间内重复触发
+    if (now - _lastLoadTriggerTime < _loadThrottleMs) {
+      return;
+    }
+
+    final provider = context.read<LeaderboardProvider>();
+    if (provider.canLoadMore) {
+      _lastLoadTriggerTime = now;
+      provider.loadMore();
     }
   }
 
@@ -356,35 +389,38 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisCount = 3;
           }
 
-          return CustomScrollView(
-            controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverGrid(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.75,
+          return NotificationListener<ScrollNotification>(
+            onNotification: _handleScrollNotification,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = provider.items[index];
+                      // 排名就是 index + 1（无限滚动模式）
+                      final actualRank = index + 1;
+                      return VideoCard(
+                        item: item,
+                        rank: actualRank,
+                        isRank1Custom: settingsProvider.isRank1Custom,
+                        onTap: () => _openVideo(context, item.bvid, item.title),
+                      );
+                    }, childCount: provider.items.length),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final item = provider.items[index];
-                    // 排名就是 index + 1（无限滚动模式）
-                    final actualRank = index + 1;
-                    return VideoCard(
-                      item: item,
-                      rank: actualRank,
-                      isRank1Custom: settingsProvider.isRank1Custom,
-                      onTap: () => _openVideo(context, item.bvid, item.title),
-                    );
-                  }, childCount: provider.items.length),
                 ),
-              ),
-              // 加载更多指示器
-              SliverToBoxAdapter(child: _buildLoadMoreIndicator(provider)),
-            ],
+                // 加载更多指示器
+                SliverToBoxAdapter(child: _buildLoadMoreIndicator(provider)),
+              ],
+            ),
           );
         },
       ),

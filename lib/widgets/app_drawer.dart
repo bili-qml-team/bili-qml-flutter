@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/providers.dart';
 import '../services/services.dart';
@@ -78,7 +79,8 @@ class AppDrawer extends StatelessWidget {
 
                       final showInstallButton =
                           pwaInstallService.isInstallPromptAvailable;
-                      final showIosTip = pwaInstallService.isIosDevice &&
+                      final showIosTip =
+                          pwaInstallService.isIosDevice &&
                           !pwaInstallService.isInstallPromptAvailable;
 
                       if (!showInstallButton && !showIosTip) {
@@ -102,6 +104,22 @@ class AppDrawer extends StatelessWidget {
                           if (showIosTip) _buildIosInstallTip(context, isDark),
                         ],
                       );
+                    },
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.group_add,
+                    title: '加入QQ群',
+                    subtitle: '点击加入交流群',
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final uri = Uri.parse('https://qm.qq.com/q/Yc8xTHKZqA');
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                      }
                     },
                   ),
                   _buildMenuItem(
@@ -152,17 +170,17 @@ class AppDrawer extends StatelessWidget {
               children: [
                 Text(
                   'B站问号榜',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '发现有趣的视频',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                      ),
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
                 ),
               ],
             ),
@@ -185,14 +203,18 @@ class AppDrawer extends StatelessWidget {
     return ListTile(
       leading: Icon(
         icon,
-        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+        color: isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary,
       ),
       title: Text(title),
       subtitle: Text(
         subtitle,
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+          color: isDark
+              ? AppColors.darkTextTertiary
+              : AppColors.lightTextTertiary,
         ),
       ),
       onTap: onTap,
@@ -224,32 +246,27 @@ class AppDrawer extends StatelessWidget {
         return ListTile(
           leading: Icon(
             modeIcon,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary,
           ),
           title: const Text('主题'),
           subtitle: Text(
             modeText,
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              color: isDark
+                  ? AppColors.darkTextTertiary
+                  : AppColors.lightTextTertiary,
             ),
           ),
           trailing: PopupMenuButton<ThemeMode>(
             initialValue: currentMode,
             onSelected: (mode) => themeProvider.setThemeMode(mode),
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: ThemeMode.system,
-                child: Text('跟随系统'),
-              ),
-              const PopupMenuItem(
-                value: ThemeMode.light,
-                child: Text('浅色模式'),
-              ),
-              const PopupMenuItem(
-                value: ThemeMode.dark,
-                child: Text('深色模式'),
-              ),
+              const PopupMenuItem(value: ThemeMode.system, child: Text('跟随系统')),
+              const PopupMenuItem(value: ThemeMode.light, child: Text('浅色模式')),
+              const PopupMenuItem(value: ThemeMode.dark, child: Text('深色模式')),
             ],
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -262,10 +279,7 @@ class AppDrawer extends StatelessWidget {
                 children: [
                   Text(
                     modeText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.biliBlue,
-                    ),
+                    style: TextStyle(fontSize: 12, color: AppColors.biliBlue),
                   ),
                   const SizedBox(width: 4),
                   Icon(
@@ -286,14 +300,18 @@ class AppDrawer extends StatelessWidget {
     return ListTile(
       leading: Icon(
         Icons.ios_share,
-        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+        color: isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary,
       ),
       title: const Text('iOS 手动安装'),
       subtitle: Text(
         'Safari 点分享按钮，选择“添加到主屏幕”',
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+          color: isDark
+              ? AppColors.darkTextTertiary
+              : AppColors.lightTextTertiary,
         ),
       ),
     );
@@ -302,13 +320,39 @@ class AppDrawer extends StatelessWidget {
   Widget _buildFooter(BuildContext context, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Text(
-        'Made with ❤️ for Bilibili',
-        style: TextStyle(
-          fontSize: 12,
-          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+      child: GestureDetector(
+        onTap: () async {
+          final uri = Uri.parse(
+            'https://github.com/bili-qml-team/bili-qml-flutter',
+          );
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.code,
+              size: 14,
+              color: isDark
+                  ? AppColors.darkTextTertiary
+                  : AppColors.lightTextTertiary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'GitHub',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark
+                    ? AppColors.darkTextTertiary
+                    : AppColors.lightTextTertiary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ],
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }
