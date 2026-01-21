@@ -1,11 +1,13 @@
 {
-    "name": "bili_qml_app",
-    "short_name": "bili_qml_app",
+    "name": "B\u7ad9\u95ee\u53f7\u699c",
+    "short_name": "\u95ee\u53f7\u699c",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F5F7FA",
+    "theme_color": "#00AEEC",
+    "description": "B\u7ad9\u95ee\u53f7\u699c - \u62bd\u8c61\u89c6\u9891\u6392\u884c\u699c Flutter \u5ba2\u6237\u7aef",
+    "lang": "zh-CN",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

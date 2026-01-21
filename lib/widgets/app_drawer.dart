@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/providers.dart';
+import '../services/services.dart';
 import '../theme/colors.dart';
 
 /// 应用侧边栏
@@ -67,6 +70,40 @@ class AppDrawer extends StatelessWidget {
                   ),
                   const Divider(),
                   _buildThemeToggle(context, isDark),
+                  Consumer<PwaInstallService>(
+                    builder: (context, pwaInstallService, _) {
+                      if (!kIsWeb || pwaInstallService.isStandaloneMode) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final showInstallButton =
+                          pwaInstallService.isInstallPromptAvailable;
+                      final showIosTip = pwaInstallService.isIosDevice &&
+                          !pwaInstallService.isInstallPromptAvailable;
+
+                      if (!showInstallButton && !showIosTip) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (showInstallButton)
+                            _buildMenuItem(
+                              context,
+                              icon: Icons.download,
+                              title: '安装应用',
+                              subtitle: '添加到桌面或主屏幕',
+                              onTap: () {
+                                Navigator.pop(context);
+                                pwaInstallService.promptInstall();
+                              },
+                            ),
+                          if (showIosTip) _buildIosInstallTip(context, isDark),
+                        ],
+                      );
+                    },
+                  ),
                   _buildMenuItem(
                     context,
                     icon: Icons.settings,
@@ -242,6 +279,23 @@ class AppDrawer extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildIosInstallTip(BuildContext context, bool isDark) {
+    return ListTile(
+      leading: Icon(
+        Icons.ios_share,
+        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+      ),
+      title: const Text('iOS 手动安装'),
+      subtitle: Text(
+        'Safari 点分享按钮，选择“添加到主屏幕”',
+        style: TextStyle(
+          fontSize: 12,
+          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+        ),
+      ),
     );
   }
 

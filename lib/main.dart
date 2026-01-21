@@ -54,6 +54,7 @@ class BiliQmlApp extends StatelessWidget {
         // 服务层
         Provider<StorageService>.value(value: storageService),
         Provider<ApiService>.value(value: apiService),
+        ChangeNotifierProvider(create: (_) => PwaInstallService()),
 
         // 状态管理
         ChangeNotifierProvider(create: (_) => ThemeProvider(storageService)),

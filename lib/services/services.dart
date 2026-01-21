@@ -7,3 +7,4 @@ export 'favorites_service.dart';
 export 'history_service.dart';
 export 'bvid_parser_service.dart';
 export 'filter/filter.dart';
+export 'pwa_install_service.dart';
