@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../theme/colors.dart';
-import 'share_options_dialog.dart';
 import 'no_referrer_image.dart';
+import 'share_options_dialog.dart';
 
 /// 视频卡片组件
 class VideoCard extends StatefulWidget {
