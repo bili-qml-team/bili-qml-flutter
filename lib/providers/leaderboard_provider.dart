@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
@@ -22,9 +24,13 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   int _currentPage = 1;
   static const int _maxPage = 10; // API 支持的最大页数
   static const int _itemsPerPage = 20; // 每页条目数
+  static const int _videoDetailsBatchSize = 4;
+  static const int _loadMoreThrottleMs = 400;
 
   // 无限滚动：存储所有已加载的数据
   final List<LeaderboardItem> _allItems = [];
+  int _lastLoadMoreAt = 0;
+  int _detailsRequestId = 0;
 
   LeaderboardProvider(this._apiService, this._prefs);
 
@@ -104,6 +110,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     _currentRange = range;
     _currentPage = 1;
     _allItems.clear();
+    _detailsRequestId++;
     notifyListeners();
     await fetchLeaderboard();
   }
@@ -164,15 +171,19 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     }
   }
 
+  bool _isItemComplete(LeaderboardItem item) {
+    return item.title != null &&
+        item.picUrl != null &&
+        item.ownerName != null &&
+        item.viewCount != null &&
+        item.danmakuCount != null;
+  }
+
   bool _isCacheComplete(List<LeaderboardItem> items) {
     if (items.isEmpty) return false;
 
     for (final item in items) {
-      if (item.title == null ||
-          item.picUrl == null ||
-          item.ownerName == null ||
-          item.viewCount == null ||
-          item.danmakuCount == null) {
+      if (!_isItemComplete(item)) {
         return false;
       }
     }
@@ -201,44 +212,98 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
   /// 获取排行榜数据（首次加载或刷新）
   Future<void> fetchLeaderboard({String? altchaSolution}) async {
-    _isLoading = true;
-    _error = null;
-    _requiresCaptcha = false;
-    notifyListeners();
+    final canUseCache = _allItems.isEmpty && altchaSolution == null;
+    var loadedFromCache = false;
 
-    // 首次加载时尝试从缓存读取
-    if (_allItems.isEmpty && altchaSolution == null) {
-      final loadedFromCache = await _loadFromCache(_currentRange);
+    if (canUseCache) {
+      _isLoading = true;
+      _error = null;
+      _requiresCaptcha = false;
+      notifyListeners();
+
+      loadedFromCache = await _loadFromCache(_currentRange);
       if (loadedFromCache) {
         _isLoading = false;
         notifyListeners();
-        return;
       }
     }
 
-    // 重置状态
-    _currentPage = 1;
-    _allItems.clear();
+    await _refreshFromNetwork(
+      altchaSolution: altchaSolution,
+      showLoading: !loadedFromCache,
+      preserveExistingItems: loadedFromCache,
+    );
+  }
+
+  Future<void> _refreshFromNetwork({
+    String? altchaSolution,
+    bool showLoading = true,
+    bool preserveExistingItems = false,
+  }) async {
+    final shouldPreserveItems = preserveExistingItems && _allItems.isNotEmpty;
+    final existingItems =
+        shouldPreserveItems ? List<LeaderboardItem>.from(_allItems) : null;
+
+    if (showLoading) {
+      _isLoading = true;
+      _error = null;
+      _requiresCaptcha = false;
+      if (!shouldPreserveItems) {
+        _allItems.clear();
+        _detailsRequestId++;
+      }
+      notifyListeners();
+    } else {
+      _error = null;
+      _requiresCaptcha = false;
+    }
+
+    if (!shouldPreserveItems) {
+      _currentPage = 1;
+      if (!showLoading) {
+        _detailsRequestId++;
+      }
+    }
 
     try {
-      debugPrint('Fetching leaderboard: range=$_currentRange, page=$_currentPage');
+      debugPrint('Fetching leaderboard: range=$_currentRange, page=1');
       final response = await _apiService.getLeaderboard(
         _currentRange,
         altcha: altchaSolution,
-        page: _currentPage,
+        page: 1,
       );
 
       if (response.requiresCaptcha) {
-        _requiresCaptcha = true;
         _error = '需要人机验证';
+        _requiresCaptcha = !shouldPreserveItems;
+        if (!shouldPreserveItems) {
+          _allItems.clear();
+        }
       } else if (response.success) {
-        debugPrint('Received ${response.list.length} items for page $_currentPage');
+        debugPrint('Received ${response.list.length} items for page 1');
         if (response.list.isNotEmpty) {
           debugPrint('First 3 BVIDs: ${response.list.take(3).map((e) => e.bvid).join(", ")}');
         }
-        _allItems.addAll(response.list);
-        // 异步加载视频详情
-        _loadVideoDetails(0, _allItems.length);
+
+        if (shouldPreserveItems && existingItems != null) {
+          final preserved = existingItems.length > response.list.length
+              ? existingItems.sublist(response.list.length)
+              : <LeaderboardItem>[];
+          _allItems
+            ..clear()
+            ..addAll(response.list)
+            ..addAll(preserved);
+        } else {
+          _allItems
+            ..clear()
+            ..addAll(response.list);
+        }
+
+        final requestId = _detailsRequestId;
+        final detailEnd =
+            shouldPreserveItems ? response.list.length : _allItems.length;
+        _loadVideoDetails(0, detailEnd, requestId);
+        await _saveToCache(_currentRange);
       } else {
         _error = response.error ?? '获取排行榜失败';
       }
@@ -246,7 +311,9 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
       _error = '网络错误: ${e.toString()}';
       debugPrint('Error fetching leaderboard: $e');
     } finally {
-      _isLoading = false;
+      if (showLoading) {
+        _isLoading = false;
+      }
       notifyListeners();
     }
   }
@@ -254,6 +321,10 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   /// 加载更多数据（无限滚动）
   Future<void> loadMore() async {
     if (!canLoadMore) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastLoadMoreAt < _loadMoreThrottleMs) return;
+    _lastLoadMoreAt = now;
 
     _isLoadingMore = true;
     notifyListeners();
@@ -272,7 +343,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         _allItems.addAll(response.list);
         debugPrint('Loaded ${response.list.length} more items, total: ${_allItems.length}');
         // 异步加载新增项的视频详情
-        _loadVideoDetails(startIndex, _allItems.length);
+        _loadVideoDetails(startIndex, _allItems.length, _detailsRequestId);
       } else if (!response.success) {
         // 加载失败，回退页码
         _currentPage--;
@@ -297,35 +368,41 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     // 清除当前范围的缓存时间，强制刷新
     final cacheTimeKey = _getCacheTimeKey(_currentRange);
     await _prefs.remove(cacheTimeKey);
-    await fetchLeaderboard();
+    final hasItems = _allItems.isNotEmpty;
+    await _refreshFromNetwork(
+      showLoading: !hasItems,
+      preserveExistingItems: hasItems,
+    );
   }
 
   /// 异步加载视频详情（标题、封面等）
-  Future<void> _loadVideoDetails(int startIndex, int endIndex) async {
+  Future<void> _loadVideoDetails(
+    int startIndex,
+    int endIndex,
+    int requestId,
+  ) async {
+    if (startIndex >= _allItems.length || endIndex <= startIndex) {
+      return;
+    }
+
     _pendingDetailLoads++;
+    final cappedEnd = math.min(endIndex, _allItems.length);
 
     try {
-      for (int i = startIndex; i < endIndex && i < _allItems.length; i++) {
-        final item = _allItems[i];
-        try {
-          final videoInfo = await _apiService.getBilibiliVideoInfo(item.bvid);
-          if (videoInfo != null) {
-            _allItems[i] = item.copyWithVideoInfo(
-              title: videoInfo.title,
-              picUrl: videoInfo.pic,
-              ownerName: videoInfo.ownerName,
-              viewCount: videoInfo.view,
-              danmakuCount: videoInfo.danmaku,
-            );
-            // 每加载几个就通知更新 UI
-            if ((i - startIndex) % 3 == 0 || i == endIndex - 1) {
-              notifyListeners();
-            }
-          }
-        } catch (e) {
-          // 忽略单个视频信息加载失败
-          debugPrint('Failed to load video info for ${item.bvid}: $e');
+      for (int i = startIndex; i < cappedEnd; i += _videoDetailsBatchSize) {
+        if (requestId != _detailsRequestId) return;
+
+        final batchEnd = math.min(i + _videoDetailsBatchSize, cappedEnd);
+        final futures = <Future<void>>[];
+
+        for (int j = i; j < batchEnd; j++) {
+          futures.add(_loadVideoDetailAtIndex(j, requestId));
         }
+
+        await Future.wait(futures);
+
+        if (requestId != _detailsRequestId) return;
+        notifyListeners();
       }
     } finally {
       _pendingDetailLoads--;
@@ -335,6 +412,38 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
       if (_pendingDetailLoads == 0) {
         await _saveToCache(_currentRange);
       }
+    }
+  }
+
+  Future<void> _loadVideoDetailAtIndex(int index, int requestId) async {
+    if (requestId != _detailsRequestId || index >= _allItems.length) {
+      return;
+    }
+
+    final item = _allItems[index];
+    if (_isItemComplete(item)) {
+      return;
+    }
+
+    try {
+      final videoInfo = await _apiService.getBilibiliVideoInfo(item.bvid);
+      if (requestId != _detailsRequestId || index >= _allItems.length) {
+        return;
+      }
+
+      final currentItem = _allItems[index];
+      if (videoInfo != null && currentItem.bvid == item.bvid) {
+        _allItems[index] = currentItem.copyWithVideoInfo(
+          title: videoInfo.title,
+          picUrl: videoInfo.pic,
+          ownerName: videoInfo.ownerName,
+          viewCount: videoInfo.view,
+          danmakuCount: videoInfo.danmaku,
+        );
+      }
+    } catch (e) {
+      // 忽略单个视频信息加载失败
+      debugPrint('Failed to load video info for ${item.bvid}: $e');
     }
   }
 

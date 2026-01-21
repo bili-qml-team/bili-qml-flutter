@@ -1,6 +1,7 @@
+import 'dart:ui_web' as ui_web;
+
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
-import 'dart:ui_web' as ui_web;
 
 /// Web 端实现 - 使用 HTML img 标签并设置 referrerpolicy="no-referrer"
 Widget buildPlatformImage({
@@ -51,12 +52,15 @@ class _WebImageState extends State<_WebImage> {
   void _registerViewFactory() {
     ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
       final img = web.HTMLImageElement()
-        ..src = widget.imageUrl
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.objectFit = _getObjectFit()
         ..style.pointerEvents = 'none'
-        ..setAttribute('referrerpolicy', 'no-referrer');
+        ..setAttribute('loading', 'lazy')
+        ..setAttribute('decoding', 'async')
+        ..setAttribute('fetchpriority', 'auto')
+        ..setAttribute('referrerpolicy', 'no-referrer')
+        ..src = widget.imageUrl;
 
       img.onLoad.listen((_) {
         if (mounted) {
