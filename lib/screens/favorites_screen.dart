@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../theme/colors.dart';
 import '../widgets/widgets.dart';
+import '../widgets/bili_network_image.dart';
 import 'video_screen.dart';
 
 /// 收藏页面
@@ -184,10 +185,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   width: 120,
                   height: 75,
                   child: item.picUrl != null && item.picUrl!.isNotEmpty
-                      ? Image.network(
-                          item.picUrl!,
+                      ? BiliNetworkImage(
+                          imageUrl: item.picUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
+                          errorWidget: (context, error) =>
                               _buildPlaceholder(isDark),
                         )
                       : _buildPlaceholder(isDark),

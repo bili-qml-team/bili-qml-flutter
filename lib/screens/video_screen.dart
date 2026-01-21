@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
+import '../widgets/bili_network_image.dart';
 import '../theme/colors.dart';
 
 /// 视频详情页
@@ -324,10 +325,10 @@ class _VideoScreenState extends State<VideoScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.network(
-                    _videoInfo!.pic,
+                  child: BiliNetworkImage(
+                    imageUrl: _videoInfo!.pic,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
+                    errorWidget: (context, error) {
                       return Container(
                         color: Colors.grey[200],
                         child: const Center(
