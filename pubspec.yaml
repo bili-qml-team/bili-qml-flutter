@@ -49,6 +49,7 @@ dependencies:
 
   # 接收分享内容 (替代 receive_sharing_intent)
   share_handler: ^0.0.20
+  web: ^1.1.1
 
 
 dev_dependencies:

@@ -1,7 +1,5 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
-
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 import 'dart:ui_web' as ui_web;
 
 /// Web 端实现 - 使用 HTML img 标签并设置 referrerpolicy="no-referrer"
@@ -52,7 +50,7 @@ class _WebImageState extends State<_WebImage> {
 
   void _registerViewFactory() {
     ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
-      final img = html.ImageElement()
+      final img = web.HTMLImageElement()
         ..src = widget.imageUrl
         ..style.width = '100%'
         ..style.height = '100%'

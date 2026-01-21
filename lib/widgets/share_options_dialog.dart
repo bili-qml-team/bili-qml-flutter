@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/services.dart';
@@ -111,37 +112,39 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 }
               },
             ),
-            _buildOption(
-              context,
-              icon: Icons.image,
-              iconColor: Colors.purple,
-              title: '生成分享卡片',
-              subtitle: _isGeneratingScreenshot ? '生成中...' : '生成精美图片分享',
-              onTap: _isGeneratingScreenshot
-                  ? () {} // 空回调，禁用点击
-                  : () async {
-                      setState(() => _isGeneratingScreenshot = true);
-                      try {
-                        await shareService.shareScreenshot(
-                          context,
-                          widget.item,
-                          rank: widget.rank,
-                        );
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          _showSnackBar(context, '分享卡片已生成');
+            // 只在非 Web 平台显示分享卡片选项
+            if (!kIsWeb)
+              _buildOption(
+                context,
+                icon: Icons.image,
+                iconColor: Colors.purple,
+                title: '生成分享卡片',
+                subtitle: _isGeneratingScreenshot ? '生成中...' : '生成精美图片分享',
+                onTap: _isGeneratingScreenshot
+                    ? () {} // 空回调，禁用点击
+                    : () async {
+                        setState(() => _isGeneratingScreenshot = true);
+                        try {
+                          await shareService.shareScreenshot(
+                            context,
+                            widget.item,
+                            rank: widget.rank,
+                          );
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                            _showSnackBar(context, '分享卡片已生成');
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            _showSnackBar(context, '生成失败: $e');
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isGeneratingScreenshot = false);
+                          }
                         }
-                      } catch (e) {
-                        if (context.mounted) {
-                          _showSnackBar(context, '生成失败: $e');
-                        }
-                      } finally {
-                        if (mounted) {
-                          setState(() => _isGeneratingScreenshot = false);
-                        }
-                      }
-                    },
-            ),
+                      },
+              ),
             _buildOption(
               context,
               icon: Icons.share,
