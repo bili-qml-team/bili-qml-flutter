@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/services.dart';
 import '../theme/colors.dart';
 import '../widgets/widgets.dart';
 import 'video_screen.dart';
@@ -166,7 +165,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     FavoriteItem item,
     bool isDark,
   ) {
-    final imageUrl = sanitizeCoverUrl(item.picUrl) ?? item.picUrl;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -187,7 +185,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   height: 75,
                   child: item.picUrl != null && item.picUrl!.isNotEmpty
                       ? Image.network(
-                          imageUrl!,
+                          item.picUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               _buildPlaceholder(isDark),

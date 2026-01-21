@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
-import 'image_url_service.dart';
 import 'storage_service.dart';
 
 /// 浏览历史服务类
@@ -24,17 +23,9 @@ class HistoryService {
       }
 
       final List<dynamic> jsonList = json.decode(jsonString) as List;
-      final historyItems = jsonList
+      return jsonList
           .map((item) => HistoryItem.fromJson(item as Map<String, dynamic>))
           .toList();
-      final sanitizedItems = _sanitizeItems(historyItems);
-      if (!_listEquals(historyItems, sanitizedItems)) {
-        final jsonString = json.encode(
-          sanitizedItems.map((item) => item.toJson()).toList(),
-        );
-        await _prefs.setString(_storageKey, jsonString);
-      }
-      return sanitizedItems;
     } catch (e) {
       // 如果解析失败，返回空列表并清除损坏的数据
       await _prefs.remove(_storageKey);
@@ -47,13 +38,12 @@ class HistoryService {
   Future<bool> add(HistoryItem item) async {
     try {
       var history = await getAll();
-      final sanitizedItem = _sanitizeItem(item);
 
       // 移除相同BV号的旧记录（如果存在）
-      history.removeWhere((h) => h.bvid == sanitizedItem.bvid);
+      history.removeWhere((h) => h.bvid == item.bvid);
 
       // 添加到列表开头（最新的在前面）
-      history.insert(0, sanitizedItem);
+      history.insert(0, item);
 
       // 限制历史记录数量
       if (history.length > _maxHistoryCount) {
@@ -106,35 +96,5 @@ class HistoryService {
   Future<int> getCount() async {
     final history = await getAll();
     return history.length;
-  }
-
-  HistoryItem _sanitizeItem(HistoryItem item) {
-    final sanitizedUrl = sanitizeCoverUrl(item.picUrl);
-    if (sanitizedUrl == item.picUrl) {
-      return item;
-    }
-    return HistoryItem(
-      bvid: item.bvid,
-      title: item.title,
-      picUrl: sanitizedUrl,
-      ownerName: item.ownerName,
-      viewedAt: item.viewedAt,
-    );
-  }
-
-  List<HistoryItem> _sanitizeItems(List<HistoryItem> items) {
-    return items.map(_sanitizeItem).toList();
-  }
-
-  bool _listEquals(List<HistoryItem> a, List<HistoryItem> b) {
-    if (a.length != b.length) {
-      return false;
-    }
-    for (var i = 0; i < a.length; i++) {
-      if (a[i].bvid != b[i].bvid || a[i].picUrl != b[i].picUrl) {
-        return false;
-      }
-    }
-    return true;
   }
 }
