@@ -32,4 +32,26 @@ enum LeaderboardRange {
   const LeaderboardRange(this.value, this.label);
 }
 
-/// 主题模式 (App 自定义枚举已移除，直接使用 Flutter 的 ThemeMode)
+/// GitHub 配置
+class GitHubConfig {
+  /// GitHub 仓库信息
+  static const String owner = 'bili-qml-team';
+  static const String repo = 'bili-qml-flutter';
+
+  /// GitHub Releases API 地址
+  static String get latestReleaseApi =>
+      'https://api.github.com/repos/$owner/$repo/releases/latest';
+
+  /// GitHub Releases 页面地址
+  static String get releasesPageUrl =>
+      'https://github.com/$owner/$repo/releases/latest';
+
+  /// QQ 群链接（备用更新渠道）
+  static const String qqGroupUrl = 'https://qm.qq.com/q/Yc8xTHKZqA';
+}
+
+/// 应用版本信息
+class AppVersion {
+  /// 当前应用版本（需要与 pubspec.yaml 保持同步）
+  static const String current = '1.1.0';
+}

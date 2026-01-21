@@ -8,3 +8,4 @@ export 'history_service.dart';
 export 'bvid_parser_service.dart';
 export 'filter/filter.dart';
 export 'pwa_install_service.dart';
+export 'update_service.dart';

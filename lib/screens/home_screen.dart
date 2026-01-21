@@ -36,10 +36,22 @@ class _HomeScreenState extends State<HomeScreen> {
     // 初始加载排行榜
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LeaderboardProvider>().fetchLeaderboard();
+      // 检查更新（仅非 Web 端）
+      _checkForUpdate();
     });
 
     // 初始化分享监听
     _initShareListener();
+  }
+
+  /// 检查应用更新
+  Future<void> _checkForUpdate() async {
+    final updateService = UpdateService();
+    final releaseInfo = await updateService.checkForUpdate();
+
+    if (releaseInfo != null && mounted) {
+      UpdateDialog.show(context, releaseInfo);
+    }
   }
 
   /// 初始化分享监听
