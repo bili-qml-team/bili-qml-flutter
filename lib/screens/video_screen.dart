@@ -324,10 +324,10 @@ class _VideoScreenState extends State<VideoScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: NoReferrerImage(
-                    imageUrl: _videoInfo!.pic,
+                  child: Image.network(
+                    _videoInfo!.pic,
                     fit: BoxFit.cover,
-                    errorWidget: (context) {
+                    errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[200],
                         child: const Center(

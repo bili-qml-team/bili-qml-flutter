@@ -184,10 +184,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   width: 120,
                   height: 75,
                   child: item.picUrl != null && item.picUrl!.isNotEmpty
-                      ? NoReferrerImage(
-                          imageUrl: item.picUrl!,
+                      ? Image.network(
+                          item.picUrl!,
                           fit: BoxFit.cover,
-                          errorWidget: (context) => _buildPlaceholder(isDark),
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildPlaceholder(isDark),
                         )
                       : _buildPlaceholder(isDark),
                 ),
