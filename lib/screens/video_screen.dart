@@ -324,8 +324,11 @@ class _VideoScreenState extends State<VideoScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: ProxiedImage(
-                    imageUrl: _videoInfo!.pic,
+                  child: Image.network(
+                    ImageProxyService.getProxiedImageUrl(
+                      context,
+                      _videoInfo!.pic,
+                    ),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(

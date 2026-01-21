@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/image_proxy_service.dart';
 import '../theme/colors.dart';
-import 'proxied_image.dart';
 import 'share_options_dialog.dart';
 
 /// 视频卡片组件
@@ -113,14 +114,17 @@ class _VideoCardState extends State<VideoCard> {
       );
     }
 
-    return ProxiedImage(
-      imageUrl: widget.item.picUrl,
+    return CachedNetworkImage(
+      imageUrl: ImageProxyService.getProxiedImageUrl(
+        context,
+        widget.item.picUrl,
+      ),
       fit: BoxFit.cover,
-      placeholder: Container(
+      placeholder: (context, url) => Container(
         color: Colors.grey[300],
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      errorBuilder: (context, error, stackTrace) => Container(
+      errorWidget: (context, url, error) => Container(
         color: Colors.grey[300],
         child: const Center(
           child: Icon(Icons.broken_image, size: 48, color: Colors.grey),

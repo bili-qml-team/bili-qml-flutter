@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/image_proxy_service.dart';
 import '../theme/colors.dart';
-import '../widgets/proxied_image.dart';
 import '../widgets/widgets.dart';
 import 'video_screen.dart';
 
@@ -185,8 +185,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   width: 120,
                   height: 75,
                   child: item.picUrl != null && item.picUrl!.isNotEmpty
-                      ? ProxiedImage(
-                          imageUrl: item.picUrl,
+                      ? Image.network(
+                          ImageProxyService.getProxiedImageUrl(
+                            context,
+                            item.picUrl,
+                          ),
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               _buildPlaceholder(isDark),
