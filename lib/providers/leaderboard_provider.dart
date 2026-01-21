@@ -19,6 +19,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   String? _error;
   bool _requiresCaptcha = false;
   int _pendingDetailLoads = 0;
+  bool _hasMoreFromServer = true;
 
   // 分页相关
   int _currentPage = 1;
@@ -45,7 +46,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   // 无限滚动相关 getters
   int get currentPage => _currentPage;
   int get maxPage => _maxPage;
-  bool get hasMore => _currentPage < _maxPage;
+  bool get hasMore => _hasMoreFromServer && _currentPage < _maxPage;
   bool get canLoadMore => hasMore && !_isLoading && !_isLoadingMore;
 
   // 向后兼容的 getters（已废弃，使用基类的 criteria）
@@ -109,6 +110,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
     _currentRange = range;
     _currentPage = 1;
+    _hasMoreFromServer = true;
     _allItems.clear();
     _detailsRequestId++;
     notifyListeners();
@@ -212,6 +214,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
   /// 获取排行榜数据（首次加载或刷新）
   Future<void> fetchLeaderboard({String? altchaSolution}) async {
+    _hasMoreFromServer = true;
     final canUseCache = _allItems.isEmpty && altchaSolution == null;
     var loadedFromCache = false;
 
@@ -261,6 +264,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
     if (!shouldPreserveItems) {
       _currentPage = 1;
+      _hasMoreFromServer = true;
       if (!showLoading) {
         _detailsRequestId++;
       }
@@ -282,6 +286,9 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         }
       } else if (response.success) {
         debugPrint('Received ${response.list.length} items for page 1');
+        if (response.list.isEmpty) {
+          _hasMoreFromServer = false;
+        }
         if (response.list.isNotEmpty) {
           debugPrint(
             'First 3 BVIDs: ${response.list.take(3).map((e) => e.bvid).join(", ")}',
@@ -401,6 +408,10 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
         // 异步加载新增项的视频详情
         _loadVideoDetails(startIndex, _allItems.length, _detailsRequestId);
+      } else if (response.success && response.list.isEmpty) {
+        _currentPage--;
+        _hasMoreFromServer = false;
+        debugPrint('No more items returned; reached end of leaderboard.');
       } else if (!response.success) {
         // 加载失败，回退页码
         _currentPage--;
@@ -425,6 +436,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     // 清除当前范围的缓存时间，强制刷新
     final cacheTimeKey = _getCacheTimeKey(_currentRange);
     await _prefs.remove(cacheTimeKey);
+    _hasMoreFromServer = true;
     final hasItems = _allItems.isNotEmpty;
     await _refreshFromNetwork(
       showLoading: !hasItems,
