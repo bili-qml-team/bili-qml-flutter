@@ -104,28 +104,47 @@ class _VideoCardState extends State<VideoCard> {
   }
 
   Widget _buildThumbnail() {
+    Widget content;
+
     if (widget.item.picUrl == null || widget.item.picUrl!.isEmpty) {
-      return Container(
+      content = Container(
         color: Colors.grey[300],
         child: const Center(
           child: Icon(Icons.video_library, size: 48, color: Colors.grey),
         ),
       );
+    } else {
+      content = BiliNetworkImage(
+        imageUrl: widget.item.picUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context) => Container(
+          color: Colors.grey[300],
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+        errorWidget: (context, error) => Container(
+          color: Colors.grey[300],
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+          ),
+        ),
+      );
     }
 
-    return BiliNetworkImage(
-      imageUrl: widget.item.picUrl!,
-      fit: BoxFit.cover,
-      placeholder: (context) => Container(
-        color: Colors.grey[300],
-        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ),
-      errorWidget: (context, error) => Container(
-        color: Colors.grey[300],
-        child: const Center(
-          child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+    if (widget.onTap == null) {
+      return content;
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        content,
+        Positioned.fill(
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(onTap: widget.onTap),
+          ),
         ),
-      ),
+      ],
     );
   }
 
