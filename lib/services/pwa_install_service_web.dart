@@ -59,16 +59,40 @@ class PwaInstallService extends ChangeNotifier {
   }
 
   static bool _checkStandaloneMode() {
-    final isStandalone =
-        html.window.matchMedia('(display-mode: standalone)').matches;
-    final dynamic navigator = html.window.navigator;
-    final isIosStandalone = navigator.standalone == true;
+    final isStandalone = html.window
+        .matchMedia('(display-mode: standalone)')
+        .matches;
+    // navigator.standalone is an iOS Safari-specific property
+    // Use try-catch to safely check for its existence
+    bool isIosStandalone = false;
+    try {
+      final dynamic navigator = html.window.navigator;
+      // Check if 'standalone' property exists before accessing it
+      if (_hasProperty(navigator, 'standalone')) {
+        isIosStandalone = navigator.standalone == true;
+      }
+    } catch (e) {
+      // Property doesn't exist or other error - treat as not standalone
+      isIosStandalone = false;
+    }
     return isStandalone || isIosStandalone;
+  }
+
+  static bool _hasProperty(dynamic obj, String propertyName) {
+    try {
+      // Use JavaScript's 'in' operator behavior via hasOwnProperty or checking undefined
+      final dynamic jsObj = obj;
+      return jsObj.hasOwnProperty(propertyName) == true ||
+          (jsObj as dynamic)[propertyName] != null;
+    } catch (e) {
+      return false;
+    }
   }
 
   static bool _detectIosDevice() {
     final userAgent = html.window.navigator.userAgent.toLowerCase();
-    final isIos = userAgent.contains('iphone') ||
+    final isIos =
+        userAgent.contains('iphone') ||
         userAgent.contains('ipad') ||
         userAgent.contains('ipod');
     if (isIos) {
