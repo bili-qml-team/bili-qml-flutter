@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../models/models.dart';
+import '../providers/providers.dart';
 import '../theme/colors.dart';
+import 'share_options_dialog.dart';
+import 'bili_network_image.dart';
 
 /// 视频卡片组件
-class VideoCard extends StatelessWidget {
+class VideoCard extends StatefulWidget {
   final LeaderboardItem item;
   final int rank;
   final bool isRank1Custom;
@@ -19,6 +22,11 @@ class VideoCard extends StatelessWidget {
   });
 
   @override
+  State<VideoCard> createState() => _VideoCardState();
+}
+
+class _VideoCardState extends State<VideoCard> {
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -26,7 +34,7 @@ class VideoCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -40,8 +48,27 @@ class VideoCard extends StatelessWidget {
                   _buildThumbnail(),
                   // 排名徽章
                   Positioned(left: 8, top: 8, child: _buildRankBadge(isDark)),
-                  // 抽象指数
-                  Positioned(right: 8, bottom: 8, child: _buildScoreTag()),
+                  // 分享按钮
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: _buildShareButton(context),
+                  ),
+                  // 底部操作栏
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 收藏按钮
+                        _buildFavoriteButton(context),
+                        const SizedBox(width: 4),
+                        // 抽象指数
+                        _buildScoreTag(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -53,7 +80,7 @@ class VideoCard extends StatelessWidget {
                 children: [
                   // 标题
                   Text(
-                    item.title ?? 'Loading...',
+                    widget.item.title ?? 'Loading...',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall?.copyWith(
@@ -77,28 +104,47 @@ class VideoCard extends StatelessWidget {
   }
 
   Widget _buildThumbnail() {
-    if (item.picUrl == null || item.picUrl!.isEmpty) {
-      return Container(
+    Widget content;
+
+    if (widget.item.picUrl == null || widget.item.picUrl!.isEmpty) {
+      content = Container(
         color: Colors.grey[300],
         child: const Center(
           child: Icon(Icons.video_library, size: 48, color: Colors.grey),
         ),
       );
+    } else {
+      content = BiliNetworkImage(
+        imageUrl: widget.item.picUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context) => Container(
+          color: Colors.grey[300],
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+        errorWidget: (context, error) => Container(
+          color: Colors.grey[300],
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+          ),
+        ),
+      );
     }
 
-    return CachedNetworkImage(
-      imageUrl: item.picUrl!.replaceFirst('http:', 'https:'),
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: Colors.grey[300],
-        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.grey[300],
-        child: const Center(
-          child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+    if (widget.onTap == null) {
+      return content;
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        content,
+        Positioned.fill(
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(onTap: widget.onTap),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -107,23 +153,23 @@ class VideoCard extends StatelessWidget {
     Color bgColor;
     Color textColor = Colors.white;
 
-    if (rank == 1 && isRank1Custom) {
+    if (widget.rank == 1 && widget.isRank1Custom) {
       rankText = '何一位';
       bgColor = AppColors.rank1;
       textColor = Colors.black87;
-    } else if (rank == 1) {
+    } else if (widget.rank == 1) {
       rankText = '1';
       bgColor = AppColors.rank1;
       textColor = Colors.black87;
-    } else if (rank == 2) {
+    } else if (widget.rank == 2) {
       rankText = '2';
       bgColor = AppColors.rank2;
       textColor = Colors.black87;
-    } else if (rank == 3) {
+    } else if (widget.rank == 3) {
       rankText = '3';
       bgColor = AppColors.rank3;
     } else {
-      rankText = '#$rank';
+      rankText = '#${widget.rank}';
       bgColor = isDark ? Colors.black54 : Colors.black38;
     }
 
@@ -144,10 +190,82 @@ class VideoCard extends StatelessWidget {
         rankText,
         style: TextStyle(
           color: textColor,
-          fontSize: rank == 1 && isRank1Custom ? 12 : 14,
+          fontSize: widget.rank == 1 && widget.isRank1Custom ? 12 : 14,
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+
+  Widget _buildShareButton(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          ShareOptionsDialog.show(context, widget.item, rank: widget.rank);
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.share, color: Colors.white, size: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFavoriteButton(BuildContext context) {
+    return Consumer<FavoritesProvider>(
+      builder: (context, favoritesProvider, _) {
+        final isFavorited = favoritesProvider.isFavoritedSync(widget.item.bvid);
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              await favoritesProvider.toggleFavorite(
+                widget.item.bvid,
+                title: widget.item.title,
+                picUrl: widget.item.picUrl,
+                ownerName: widget.item.ownerName,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(isFavorited ? '已取消收藏' : '已添加到收藏'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isFavorited ? Icons.favorite : Icons.favorite_border,
+                color: isFavorited ? Colors.pinkAccent : Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -164,7 +282,7 @@ class VideoCard extends StatelessWidget {
           const Text('❓', style: TextStyle(fontSize: 14)),
           const SizedBox(width: 4),
           Text(
-            '${item.count}',
+            '${widget.item.count}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
@@ -197,7 +315,7 @@ class VideoCard extends StatelessWidget {
         const SizedBox(width: 4),
         Expanded(
           child: Text(
-            item.ownerName ?? '未知UP',
+            widget.item.ownerName ?? '未知UP',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall,
@@ -210,9 +328,9 @@ class VideoCard extends StatelessWidget {
   Widget _buildStats(ThemeData theme) {
     return Row(
       children: [
-        _buildStatItem(theme, '▶', _formatCount(item.viewCount)),
+        _buildStatItem(theme, '▶', _formatCount(widget.item.viewCount)),
         const SizedBox(width: 12),
-        _buildStatItem(theme, '💬', _formatCount(item.danmakuCount)),
+        _buildStatItem(theme, '💬', _formatCount(widget.item.danmakuCount)),
       ],
     );
   }

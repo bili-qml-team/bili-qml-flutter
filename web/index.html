@@ -18,21 +18,128 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="B&#x7AD9;&#x95EE;&#x53F7;&#x699C; - &#x62BD;&#x8C61;&#x89C6;&#x9891;&#x6392;&#x884C;&#x699C; Flutter &#x5BA2;&#x6237;&#x7AEF">
+  <meta name="theme-color" content="#00AEEC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1A1A1A" media="(prefers-color-scheme: dark)">
+  <meta name="application-name" content="B&#x7AD9;&#x95EE;&#x53F7;&#x699C;">
+
+  <link rel="preconnect" href="https://bili-qml.bydfk.com" crossorigin>
+  <link rel="preconnect" href="https://api.bilibili.com" crossorigin>
+  <link rel="preconnect" href="https://i0.hdslb.com" crossorigin>
+
+  <script>
+    (function () {
+      var storedTheme = null;
+      try {
+        storedTheme = window.localStorage.getItem('flutter.theme');
+      } catch (e) {
+        storedTheme = null;
+      }
+
+      if (storedTheme) {
+        try {
+          storedTheme = JSON.parse(storedTheme);
+        } catch (e) {
+          storedTheme = storedTheme;
+        }
+      }
+
+      var theme = storedTheme === 'dark' || storedTheme === 'light'
+        ? storedTheme
+        : 'system';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --page-bg: #f6f7f8;
+      --loading-bg: radial-gradient(circle at top, #ffffff 0%, #f2f4f8 60%);
+      --loading-text: #5b6068;
+      --loading-spinner-track: rgba(1, 117, 194, 0.15);
+      --loading-spinner-head: rgba(1, 117, 194, 0.8);
+    }
+    html[data-theme="light"] {
+      color-scheme: light;
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --page-bg: #0f1114;
+      --loading-bg: radial-gradient(circle at top, #202429 0%, #15181c 65%);
+      --loading-text: #c8cdd4;
+      --loading-spinner-track: rgba(65, 157, 227, 0.28);
+      --loading-spinner-head: rgba(129, 195, 255, 0.9);
+    }
+    @media (prefers-color-scheme: dark) {
+      html[data-theme="system"] {
+        color-scheme: dark;
+        --page-bg: #0f1114;
+        --loading-bg: radial-gradient(circle at top, #202429 0%, #15181c 65%);
+        --loading-text: #c8cdd4;
+        --loading-spinner-track: rgba(65, 157, 227, 0.28);
+        --loading-spinner-head: rgba(129, 195, 255, 0.9);
+      }
+    }
+    html, body {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      background: var(--page-bg);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    }
+    #flutter-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--loading-bg);
+      color: var(--loading-text);
+      z-index: 9999;
+    }
+    .flutter-loading-spinner {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 4px solid var(--loading-spinner-track);
+      border-top-color: var(--loading-spinner-head);
+      animation: flutter-spin 0.9s linear infinite;
+    }
+    @keyframes flutter-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="bili_qml_app">
+  <meta name="apple-mobile-web-app-title" content="B&#x7AD9;&#x95EE;&#x53F7;&#x699C;">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>bili_qml_app</title>
+  <title>B&#x7AD9;&#x95EE;&#x53F7;&#x699C;</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <div id="flutter-loading">
+    <div class="flutter-loading-spinner"></div>
+    <div>Loading...</div>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var loading = document.getElementById('flutter-loading');
+      if (loading) {
+        loading.remove();
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

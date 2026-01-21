@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:share_handler/share_handler.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
 import '../theme/colors.dart';
 import 'video_screen.dart';
 import 'settings_screen.dart';
+import 'favorites_screen.dart';
+import 'history_screen.dart';
 
 /// 主页 - 排行榜
 class HomeScreen extends StatefulWidget {
@@ -17,13 +20,184 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _intentSub;
+
+  /// 上次触发加载的时间，用于节流
+  int _lastLoadTriggerTime = 0;
+
+  /// 节流间隔，单位毫秒
+  static const int _loadThrottleMs = 300;
+
   @override
   void initState() {
     super.initState();
     // 初始加载排行榜
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LeaderboardProvider>().fetchLeaderboard();
+      // 检查更新（仅非 Web 端）
+      _checkForUpdate();
     });
+
+    // 初始化分享监听
+    _initShareListener();
+  }
+
+  /// 检查应用更新
+  Future<void> _checkForUpdate() async {
+    final updateService = UpdateService();
+    final releaseInfo = await updateService.checkForUpdate();
+
+    if (releaseInfo != null && mounted) {
+      UpdateDialog.show(context, releaseInfo);
+    }
+  }
+
+  /// 初始化分享监听
+  Future<void> _initShareListener() async {
+    // 1. 处理应用冷启动时的分享内容
+    try {
+      final initialShared = await ShareHandler.instance.getInitialSharedMedia();
+      if (initialShared != null) {
+        _processSharedContent(initialShared);
+        // 清除初始分享内容，防止热重载或重新初始化时重复处理
+        await ShareHandler.instance.resetInitialSharedMedia();
+      }
+    } catch (e) {
+      debugPrint('获取初始分享内容失败: $e');
+    }
+
+    // 2. 监听运行时的分享内容
+    _intentSub = ShareHandler.instance.sharedMediaStream.listen(
+      (SharedMedia value) {
+        _processSharedMedia(value);
+      },
+      onError: (err) {
+        debugPrint('分享接收错误: $err');
+      },
+    );
+  }
+
+  /// 处理 SharedMedia 对象（来自 Stream）
+  void _processSharedMedia(SharedMedia media) {
+    if (media.content != null && media.content!.isNotEmpty) {
+      // 优先使用 content (通常是文本或链接)
+      _handleSharedText(media.content!);
+    } else if (media.attachments != null && media.attachments!.isNotEmpty) {
+      // 如果有附件，尝试从附件路径中获取信息（虽然当前只处理文本）
+      // 这里暂时不需要专门处理文件，我们的场景主要是 BV 号文本
+    }
+  }
+
+  /// 处理 initialShared 对象（结构可能不同，视插件版本而定，share_handler 统一使用 SharedMedia）
+  void _processSharedContent(SharedMedia media) {
+    _processSharedMedia(media);
+  }
+
+  /// 处理分享的文本
+  Future<void> _handleSharedText(String text) async {
+    if (text.isEmpty) return;
+    debugPrint('收到分享内容: $text');
+    await _parseAndNavigate(text);
+  }
+
+  /// 解析分享内容并导航
+  Future<void> _parseAndNavigate(String text) async {
+    final bvidParser = BvidParserService();
+
+    // 显示加载提示
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('正在解析分享内容...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    try {
+      String? bvid;
+
+      // 检查是否为短链接
+      if (bvidParser.isShortLink(text)) {
+        bvid = await bvidParser.parseAsync(text);
+      } else {
+        bvid = bvidParser.parseBvid(text);
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // 关闭加载对话框
+
+      if (bvid != null && bvid.isNotEmpty) {
+        // 成功解析，跳转到视频详情页
+        _openVideo(context, bvid, null);
+      } else {
+        // 解析失败，显示提示
+        _showErrorSnackBar('无法从分享内容中解析出BV号');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // 关闭加载对话框
+      _showErrorSnackBar('解析分享内容失败: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _intentSub?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// 处理滚动事件，检测是否需要加载更多
+  ///
+  /// 优化点：
+  /// 1. 使用 NotificationListener 在 Widget 层处理滚动
+  /// 2. 动态计算预加载阈值为视口高度的 50%
+  /// 3. 添加节流机制避免短时间内重复触发
+  bool _handleScrollNotification(ScrollNotification notification) {
+    // 只处理滚动更新通知
+    if (notification is ScrollUpdateNotification) {
+      final metrics = notification.metrics;
+
+      // 计算动态预加载阈值：视口高度的 50%，最小 200 像素
+      final viewportHeight = metrics.viewportDimension;
+      final preloadThreshold = (viewportHeight * 0.5).clamp(200.0, 600.0);
+
+      // 检查是否接近底部
+      final distanceToBottom = metrics.maxScrollExtent - metrics.pixels;
+
+      if (distanceToBottom <= preloadThreshold) {
+        _tryLoadMore();
+      }
+    }
+    // 返回 false 让通知继续传递
+    return false;
+  }
+
+  /// 尝试加载更多数据，带节流
+  void _tryLoadMore() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // 节流：避免短时间内重复触发
+    if (now - _lastLoadTriggerTime < _loadThrottleMs) {
+      return;
+    }
+
+    final provider = context.read<LeaderboardProvider>();
+    if (provider.canLoadMore) {
+      _lastLoadTriggerTime = now;
+      provider.loadMore();
+    }
   }
 
   @override
@@ -32,6 +206,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: AppDrawer(
+        onHistoryTap: () => _openHistory(context),
+        onFavoritesTap: () => _openFavorites(context),
+        onSearchBvTap: () => _showBvSearchDialog(context),
+        onSettingsTap: () => _openSettings(context),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -43,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return LeaderboardTabs(
                   currentRange: provider.currentRange,
                   onRangeChanged: (range) => provider.setRange(range),
-                  onSearchPressed: () => _showSearchDialog(context),
+                  onSearchPressed: () => SearchBottomSheet.show(context),
                 );
               },
             ),
@@ -85,27 +266,27 @@ class _HomeScreenState extends State<HomeScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const Spacer(),
-          // 主题切换按钮
+          // 搜索按钮
           IconButton(
             icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
+              Icons.search,
               color: isDark
                   ? AppColors.darkTextSecondary
                   : AppColors.lightTextSecondary,
             ),
-            onPressed: () => _toggleTheme(context),
-            tooltip: '切换主题',
+            onPressed: () => _showBvSearchDialog(context),
+            tooltip: '搜索BV号',
           ),
-          // 设置按钮
+          // 菜单按钮
           IconButton(
             icon: Icon(
-              Icons.settings,
+              Icons.menu,
               color: isDark
                   ? AppColors.darkTextSecondary
                   : AppColors.lightTextSecondary,
             ),
-            onPressed: () => _openSettings(context),
-            tooltip: '设置',
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            tooltip: '菜单',
           ),
         ],
       ),
@@ -220,57 +401,98 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisCount = 3;
           }
 
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.75,
+          return NotificationListener<ScrollNotification>(
+            onNotification: _handleScrollNotification,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = provider.items[index];
+                      // 排名就是 index + 1（无限滚动模式）
+                      final actualRank = index + 1;
+                      return VideoCard(
+                        item: item,
+                        rank: actualRank,
+                        isRank1Custom: settingsProvider.isRank1Custom,
+                        onTap: () => _openVideo(context, item.bvid, item.title),
+                      );
+                    }, childCount: provider.items.length),
+                  ),
+                ),
+                // 加载更多指示器
+                SliverToBoxAdapter(child: _buildLoadMoreIndicator(provider)),
+              ],
             ),
-            itemCount: provider.items.length,
-            itemBuilder: (context, index) {
-              final item = provider.items[index];
-              return VideoCard(
-                item: item,
-                rank: index + 1,
-                isRank1Custom: settingsProvider.isRank1Custom,
-                onTap: () => _openVideo(context, item.bvid, item.title),
-              );
-            },
           );
         },
       ),
     );
   }
 
-  void _toggleTheme(BuildContext context) {
-    final themeProvider = context.read<ThemeProvider>();
-    final currentMode = themeProvider.themeMode;
-
-    ThemeMode newMode;
-    switch (currentMode) {
-      case ThemeMode.system:
-        final brightness = MediaQuery.of(context).platformBrightness;
-        newMode = brightness == Brightness.dark
-            ? ThemeMode.light
-            : ThemeMode.dark;
-        break;
-      case ThemeMode.light:
-        newMode = ThemeMode.dark;
-        break;
-      case ThemeMode.dark:
-        newMode = ThemeMode.light;
-        break;
+  Widget _buildLoadMoreIndicator(LeaderboardProvider provider) {
+    if (provider.isLoadingMore) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        alignment: Alignment.center,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text('加载更多...'),
+          ],
+        ),
+      );
     }
 
-    themeProvider.setThemeMode(newMode);
+    if (!provider.hasMore && provider.items.isNotEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        alignment: Alignment.center,
+        child: Text(
+          '已加载全部 ${provider.items.length} 条数据',
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkTextTertiary
+                : AppColors.lightTextTertiary,
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox(height: 16);
   }
 
   void _openSettings(BuildContext context) {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+  }
+
+  void _openFavorites(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const FavoritesScreen()));
+  }
+
+  void _openHistory(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const HistoryScreen()));
   }
 
   void _openVideo(BuildContext context, String bvid, String? title) {
@@ -281,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
+  void _showBvSearchDialog(BuildContext context) {
     final controller = TextEditingController();
 
     showDialog(
@@ -327,123 +549,42 @@ class _HomeScreenState extends State<HomeScreen> {
     String input,
   ) async {
     final trimmedInput = input.trim();
+    final bvidParser = BvidParserService();
 
-    // Check if it's a b23.tv short link
-    if (_isB23ShortLink(trimmedInput)) {
-      // Show loading indicator
+    // 检查是否为短链接
+    if (bvidParser.isShortLink(trimmedInput)) {
+      // 关闭输入对话框并显示加载提示
       Navigator.of(dialogContext).pop();
       _showLoadingDialog();
 
       try {
-        final resolvedUrl = await _resolveB23ShortLink(trimmedInput);
-        if (!mounted) return;
-        Navigator.of(context).pop(); // Close loading dialog
+        // 使用 BvidParserService 的异步解析方法
+        final bvid = await bvidParser.parseAsync(trimmedInput);
 
-        if (resolvedUrl != null) {
-          final bvid = _parseBvid(resolvedUrl);
-          if (bvid != null && bvid.isNotEmpty) {
-            _openVideo(context, bvid, null);
-            return;
-          }
+        if (!mounted) return;
+        Navigator.of(context).pop(); // 关闭加载对话框
+
+        if (bvid != null && bvid.isNotEmpty) {
+          _openVideo(context, bvid, null);
+          return;
         }
+
         _showErrorSnackBar('无法解析短链接');
       } catch (e) {
         if (!mounted) return;
-        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pop(); // 关闭加载对话框
         _showErrorSnackBar('解析短链接失败: $e');
       }
       return;
     }
 
-    // Regular BV number or bilibili URL
-    final bvid = _parseBvid(trimmedInput);
+    // 普通BV号或B站链接
+    final bvid = bvidParser.parseBvid(trimmedInput);
     if (bvid != null && bvid.isNotEmpty) {
       Navigator.of(dialogContext).pop();
       _openVideo(context, bvid, null);
     } else {
       _showErrorSnackBar('无效的 BV 号或链接');
-    }
-  }
-
-  bool _isB23ShortLink(String input) {
-    return input.contains('b23.tv/') || input.contains('b23.com/');
-  }
-
-  /// Extract the b23.tv/b23.com URL from text that may contain other content
-  /// e.g., "【差评率100%的自助火锅-哔哩哔哩】 https://b23.tv/sne4c22"
-  String? _extractB23Url(String input) {
-    // Match http(s)://b23.tv/xxx or http(s)://b23.com/xxx
-    final urlPattern = RegExp(
-      r'https?://b23\.(tv|com)/[a-zA-Z0-9]+',
-      caseSensitive: false,
-    );
-    final match = urlPattern.firstMatch(input);
-    if (match != null) {
-      return match.group(0);
-    }
-
-    // Also match without http:// prefix like "b23.tv/xxx"
-    final shortPattern = RegExp(
-      r'b23\.(tv|com)/[a-zA-Z0-9]+',
-      caseSensitive: false,
-    );
-    final shortMatch = shortPattern.firstMatch(input);
-    if (shortMatch != null) {
-      return 'https://${shortMatch.group(0)}';
-    }
-
-    return null;
-  }
-
-  Future<String?> _resolveB23ShortLink(String shortUrl) async {
-    try {
-      // Extract the actual URL from text that may contain other content
-      final url = _extractB23Url(shortUrl) ?? shortUrl;
-
-      // Ensure the URL has a scheme
-      String processedUrl = url;
-      if (!processedUrl.startsWith('http://') &&
-          !processedUrl.startsWith('https://')) {
-        processedUrl = 'https://$processedUrl';
-      }
-
-      // Make a HEAD request to follow redirects
-      final client = http.Client();
-      try {
-        final request = http.Request('GET', Uri.parse(processedUrl));
-        request.followRedirects = false;
-
-        final streamedResponse = await client.send(request);
-
-        // Check for redirect
-        if (streamedResponse.statusCode >= 300 &&
-            streamedResponse.statusCode < 400) {
-          final location = streamedResponse.headers['location'];
-          if (location != null) {
-            return location;
-          }
-        }
-
-        // If no redirect, try to get final URL from response
-        // Some short links might redirect via JavaScript, so we try the full request
-        final response = await http.get(Uri.parse(processedUrl));
-        // Check response body for video URL pattern
-        final bvPattern = RegExp(
-          r'bilibili\.com/video/(BV[a-zA-Z0-9]{10,12})',
-          caseSensitive: false,
-        );
-        final match = bvPattern.firstMatch(response.body);
-        if (match != null) {
-          return 'https://www.bilibili.com/video/${match.group(1)}';
-        }
-
-        return null;
-      } finally {
-        client.close();
-      }
-    } catch (e) {
-      debugPrint('Error resolving short link: $e');
-      return null;
     }
   }
 
@@ -468,45 +609,5 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
-  }
-
-  String? _parseBvid(String input) {
-    if (input.isEmpty) return null;
-
-    // Direct BV number (with or without "BV" prefix)
-    // BV numbers are typically 10-12 alphanumeric characters after "BV"
-    final bvPattern = RegExp(
-      r'^(BV)?([a-zA-Z0-9]{10,12})$',
-      caseSensitive: false,
-    );
-    final directMatch = bvPattern.firstMatch(input);
-    if (directMatch != null) {
-      final bv = directMatch.group(2);
-      return bv != null ? 'BV$bv' : null;
-    }
-
-    // URL pattern: handles various formats like:
-    // - https://www.bilibili.com/video/BV1QMrhBkE8r/
-    // - https://www.bilibili.com/video/BV1QMrhBkE8r/?share_source=copy_web
-    // - https://www.bilibili.com/video/BV1qtrfBYEEN?t=1
-    // The pattern captures BV + alphanumeric chars until / or ? or end of string
-    final urlPattern = RegExp(
-      r'bilibili\.com/video/(BV[a-zA-Z0-9]+)',
-      caseSensitive: false,
-    );
-    final urlMatch = urlPattern.firstMatch(input);
-    if (urlMatch != null) {
-      return urlMatch.group(1);
-    }
-
-    // Try to extract BV from any text containing it
-    // Matches BV followed by alphanumeric chars, stopping at non-alphanumeric
-    final anyBvPattern = RegExp(r'(BV[a-zA-Z0-9]+)', caseSensitive: false);
-    final anyMatch = anyBvPattern.firstMatch(input);
-    if (anyMatch != null) {
-      return anyMatch.group(1);
-    }
-
-    return null;
   }
 }

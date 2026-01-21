@@ -19,17 +19,32 @@ void main() async {
     apiBase: savedEndpoint ?? ApiConfig.defaultApiBase,
   );
 
-  runApp(BiliQmlApp(storageService: storageService, apiService: apiService));
+  // 初始化收藏和历史服务
+  final favoritesService = FavoritesService(storageService);
+  final historyService = HistoryService(storageService);
+
+  runApp(
+    BiliQmlApp(
+      storageService: storageService,
+      apiService: apiService,
+      favoritesService: favoritesService,
+      historyService: historyService,
+    ),
+  );
 }
 
 class BiliQmlApp extends StatelessWidget {
   final StorageService storageService;
   final ApiService apiService;
+  final FavoritesService favoritesService;
+  final HistoryService historyService;
 
   const BiliQmlApp({
     super.key,
     required this.storageService,
     required this.apiService,
+    required this.favoritesService,
+    required this.historyService,
   });
 
   @override
@@ -39,13 +54,22 @@ class BiliQmlApp extends StatelessWidget {
         // 服务层
         Provider<StorageService>.value(value: storageService),
         Provider<ApiService>.value(value: apiService),
+        ChangeNotifierProvider(create: (_) => PwaInstallService()),
 
         // 状态管理
         ChangeNotifierProvider(create: (_) => ThemeProvider(storageService)),
         ChangeNotifierProvider(
           create: (_) => SettingsProvider(storageService, apiService),
         ),
-        ChangeNotifierProvider(create: (_) => LeaderboardProvider(apiService)),
+        ChangeNotifierProvider(
+          create: (_) => LeaderboardProvider(apiService, storageService.prefs),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FavoritesProvider(favoritesService)..init(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => HistoryProvider(historyService)..init(),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

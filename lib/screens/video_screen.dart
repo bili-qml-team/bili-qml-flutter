@@ -32,6 +32,21 @@ class _VideoScreenState extends State<VideoScreen> {
 
   String get _videoUrl => 'https://www.bilibili.com/video/${widget.bvid}';
 
+  /// 记录浏览历史
+  Future<void> _recordHistory() async {
+    try {
+      final historyProvider = context.read<HistoryProvider>();
+      await historyProvider.addHistory(
+        widget.bvid,
+        title: _videoInfo?.title ?? widget.title,
+        picUrl: _videoInfo?.pic,
+        ownerName: _videoInfo?.ownerName,
+      );
+    } catch (e) {
+      debugPrint('记录浏览历史失败: $e');
+    }
+  }
+
   Future<void> _loadData() async {
     try {
       final apiService = context.read<ApiService>();
@@ -56,6 +71,8 @@ class _VideoScreenState extends State<VideoScreen> {
           .then((info) {
             if (mounted && info != null) {
               setState(() => _videoInfo = info);
+              // 在获取到视频信息后记录浏览历史
+              _recordHistory();
             }
           })
           .catchError((e) {
@@ -216,6 +233,56 @@ class _VideoScreenState extends State<VideoScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              if (_videoInfo != null) {
+                final item = LeaderboardItem(
+                  bvid: widget.bvid,
+                  count: _status?.count ?? 0,
+                  title: _videoInfo!.title,
+                  picUrl: _videoInfo!.pic,
+                  ownerName: _videoInfo!.ownerName,
+                  viewCount: _videoInfo!.view,
+                  danmakuCount: _videoInfo!.danmaku,
+                );
+                ShareOptionsDialog.show(context, item);
+              } else {
+                final item = LeaderboardItem(
+                  bvid: widget.bvid,
+                  count: _status?.count ?? 0,
+                  title: widget.title,
+                );
+                ShareOptionsDialog.show(context, item);
+              }
+            },
+            tooltip: '分享',
+          ),
+          Consumer<FavoritesProvider>(
+            builder: (context, favoritesProvider, _) {
+              final isFavorited = favoritesProvider.isFavoritedSync(
+                widget.bvid,
+              );
+              return IconButton(
+                icon: Icon(
+                  isFavorited ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorited ? Colors.pinkAccent : null,
+                ),
+                onPressed: () async {
+                  await favoritesProvider.toggleFavorite(
+                    widget.bvid,
+                    title: _videoInfo?.title ?? widget.title,
+                    picUrl: _videoInfo?.pic,
+                    ownerName: _videoInfo?.ownerName,
+                  );
+                  if (mounted) {
+                    _showSnackBar(isFavorited ? '已取消收藏' : '已添加到收藏');
+                  }
+                },
+                tooltip: isFavorited ? '取消收藏' : '收藏',
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.open_in_browser),
             onPressed: _openInBrowser,
             tooltip: '在浏览器中打开',
@@ -257,10 +324,10 @@ class _VideoScreenState extends State<VideoScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.network(
-                    _videoInfo!.pic,
+                  child: BiliNetworkImage(
+                    imageUrl: _videoInfo!.pic,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
+                    errorWidget: (context, error) {
                       return Container(
                         color: Colors.grey[200],
                         child: const Center(

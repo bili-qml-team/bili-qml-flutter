@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/models.dart';
@@ -24,14 +25,24 @@ class ApiService {
     'Accept': 'application/json',
   };
 
+  String? get _originParam => kIsWeb ? Uri.base.origin : null;
+
+  Map<String, String> _attachOriginParam(Map<String, String> params) {
+    final origin = _originParam;
+    if (origin == null) {
+      return params;
+    }
+    return {...params, 'origin': origin};
+  }
+
   /// 获取投票状态
   Future<UserStatus> getStatus(String bvid, String? userId) async {
     final uri = Uri.parse('$_apiBase/status').replace(
-      queryParameters: {
+      queryParameters: _attachOriginParam({
         'bvid': bvid,
         if (userId != null) 'userId': userId,
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-      },
+      }),
     );
 
     final response = await http.get(uri, headers: _headers);
@@ -65,11 +76,11 @@ class ApiService {
     String? altcha,
   }) async {
     final uri = Uri.parse('$_apiBase/$endpoint');
-    final body = {
+    final body = _attachOriginParam({
       'bvid': bvid,
       'userId': userId,
       if (altcha != null) 'altcha': altcha,
-    };
+    });
 
     final response = await http.post(
       uri,
@@ -85,10 +96,16 @@ class ApiService {
   Future<LeaderboardResponse> getLeaderboard(
     LeaderboardRange range, {
     String? altcha,
+    int page = 1,
   }) async {
+    // API 支持的页数范围是 1-10
+    final validPage = page.clamp(1, 10);
+
     final queryParams = {
       'range': range.value,
       'type': '2', // 仅返回 BVID 和票数
+      'page': validPage.toString(),
+      '_t': DateTime.now().millisecondsSinceEpoch.toString(), // 防止缓存
     };
     if (altcha != null) {
       queryParams['altcha'] = altcha;
@@ -96,9 +113,12 @@ class ApiService {
 
     final uri = Uri.parse(
       '$_apiBase/leaderboard',
-    ).replace(queryParameters: queryParams);
+    ).replace(queryParameters: _attachOriginParam(queryParams));
 
+    debugPrint('API Request URL: $uri');
     final response = await http.get(uri, headers: _headers);
+    debugPrint('API Response Status: ${response.statusCode}, Body length: ${response.body.length}');
+    
     final json = jsonDecode(response.body) as Map<String, dynamic>;
 
     return LeaderboardResponse.fromJson(json, response.statusCode);
@@ -106,7 +126,9 @@ class ApiService {
 
   /// 获取 Altcha 挑战
   Future<AltchaChallenge> getAltchaChallenge() async {
-    final uri = Uri.parse('$_apiBase/altcha/challenge');
+    final uri = Uri.parse(
+      '$_apiBase/altcha/challenge',
+    ).replace(queryParameters: _attachOriginParam({}));
     final response = await http.get(uri, headers: _headers);
     final json = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -116,9 +138,24 @@ class ApiService {
   /// 获取 B站视频信息
   Future<VideoInfo?> getBilibiliVideoInfo(String bvid) async {
     try {
-      final uri = Uri.parse(
-        '${ApiConfig.bilibiliApiBase}/x/web-interface/view?bvid=$bvid',
-      );
+      final Uri uri;
+      if (kIsWeb) {
+        final baseUri = Uri.parse(_apiBase);
+        final rawPath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
+        final basePath = rawPath == '/' ? '' : rawPath;
+        final proxyPath =
+            basePath.isEmpty
+                ? '/api/x/web-interface/view'
+                : '$basePath/x/web-interface/view';
+        uri = baseUri.replace(
+          path: proxyPath,
+          queryParameters: _attachOriginParam({'bvid': bvid}),
+        );
+      } else {
+        uri = Uri.parse(
+          '${ApiConfig.bilibiliApiBase}/x/web-interface/view?bvid=$bvid',
+        );
+      }
       final response = await http.get(uri);
       final json = jsonDecode(response.body) as Map<String, dynamic>;
 
