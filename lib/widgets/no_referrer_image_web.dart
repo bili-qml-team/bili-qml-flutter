@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
 
 import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -56,7 +56,8 @@ class _NoReferrerImageState extends State<NoReferrerImage> {
       }
     });
 
-    ui_web.platformViewRegistry.registerViewFactory(_viewType, (_) {
+    // ignore: undefined_prefixed_name
+    ui.platformViewRegistry.registerViewFactory(_viewType, (_) {
       return _imageElement;
     });
   }
