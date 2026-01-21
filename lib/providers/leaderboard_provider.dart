@@ -16,6 +16,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   bool _isLoadingMore = false;
   String? _error;
   bool _requiresCaptcha = false;
+  int _pendingDetailLoads = 0;
 
   // 分页相关
   int _currentPage = 1;
@@ -143,6 +144,12 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
       if (items.isEmpty) return false;
 
+      if (!_isCacheComplete(items)) {
+        await _prefs.remove(cacheKey);
+        await _prefs.remove(_getCacheTimeKey(range));
+        return false;
+      }
+
       _allItems.clear();
       _allItems.addAll(items);
       // 根据缓存数据计算当前页码
@@ -157,8 +164,28 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     }
   }
 
+  bool _isCacheComplete(List<LeaderboardItem> items) {
+    if (items.isEmpty) return false;
+
+    for (final item in items) {
+      if (item.title == null ||
+          item.picUrl == null ||
+          item.ownerName == null ||
+          item.viewCount == null ||
+          item.danmakuCount == null) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   /// 保存数据到缓存
   Future<void> _saveToCache(LeaderboardRange range) async {
+    if (_pendingDetailLoads > 0 || !_isCacheComplete(_allItems)) {
+      return;
+    }
+
     final cacheKey = _getCacheKey(range);
     final cacheTimeKey = _getCacheTimeKey(range);
 
@@ -212,8 +239,6 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         _allItems.addAll(response.list);
         // 异步加载视频详情
         _loadVideoDetails(0, _allItems.length);
-        // 保存到缓存
-        _saveToCache(_currentRange);
       } else {
         _error = response.error ?? '获取排行榜失败';
       }
@@ -248,8 +273,6 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         debugPrint('Loaded ${response.list.length} more items, total: ${_allItems.length}');
         // 异步加载新增项的视频详情
         _loadVideoDetails(startIndex, _allItems.length);
-        // 更新缓存
-        _saveToCache(_currentRange);
       } else if (!response.success) {
         // 加载失败，回退页码
         _currentPage--;
@@ -279,30 +302,38 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
   /// 异步加载视频详情（标题、封面等）
   Future<void> _loadVideoDetails(int startIndex, int endIndex) async {
-    for (int i = startIndex; i < endIndex && i < _allItems.length; i++) {
-      final item = _allItems[i];
-      try {
-        final videoInfo = await _apiService.getBilibiliVideoInfo(item.bvid);
-        if (videoInfo != null) {
-          _allItems[i] = item.copyWithVideoInfo(
-            title: videoInfo.title,
-            picUrl: videoInfo.pic,
-            ownerName: videoInfo.ownerName,
-            viewCount: videoInfo.view,
-            danmakuCount: videoInfo.danmaku,
-          );
-          // 每加载几个就通知更新 UI
-          if ((i - startIndex) % 3 == 0 || i == endIndex - 1) {
-            notifyListeners();
-            // 更新缓存（包含视频详情）
-            if (i == endIndex - 1) {
-              _saveToCache(_currentRange);
+    _pendingDetailLoads++;
+
+    try {
+      for (int i = startIndex; i < endIndex && i < _allItems.length; i++) {
+        final item = _allItems[i];
+        try {
+          final videoInfo = await _apiService.getBilibiliVideoInfo(item.bvid);
+          if (videoInfo != null) {
+            _allItems[i] = item.copyWithVideoInfo(
+              title: videoInfo.title,
+              picUrl: videoInfo.pic,
+              ownerName: videoInfo.ownerName,
+              viewCount: videoInfo.view,
+              danmakuCount: videoInfo.danmaku,
+            );
+            // 每加载几个就通知更新 UI
+            if ((i - startIndex) % 3 == 0 || i == endIndex - 1) {
+              notifyListeners();
             }
           }
+        } catch (e) {
+          // 忽略单个视频信息加载失败
+          debugPrint('Failed to load video info for ${item.bvid}: $e');
         }
-      } catch (e) {
-        // 忽略单个视频信息加载失败
-        debugPrint('Failed to load video info for ${item.bvid}: $e');
+      }
+    } finally {
+      _pendingDetailLoads--;
+      if (_pendingDetailLoads < 0) {
+        _pendingDetailLoads = 0;
+      }
+      if (_pendingDetailLoads == 0) {
+        await _saveToCache(_currentRange);
       }
     }
   }
