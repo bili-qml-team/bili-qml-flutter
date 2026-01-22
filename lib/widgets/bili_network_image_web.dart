@@ -3,6 +3,8 @@ import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
 
+final Set<String> _registeredViewTypes = <String>{};
+
 /// Web 端实现 - 使用 HTML img 标签并设置 referrerpolicy="no-referrer"
 Widget buildPlatformImage({
   required BuildContext context,
@@ -10,12 +12,14 @@ Widget buildPlatformImage({
   required BoxFit fit,
   Widget Function(BuildContext context)? placeholder,
   Widget Function(BuildContext context, Object error)? errorWidget,
+  bool isHighPriority = false,
 }) {
   return _WebImage(
     imageUrl: imageUrl,
     fit: fit,
     placeholder: placeholder,
     errorWidget: errorWidget,
+    isHighPriority: isHighPriority,
   );
 }
 
@@ -24,12 +28,14 @@ class _WebImage extends StatefulWidget {
   final BoxFit fit;
   final Widget Function(BuildContext context)? placeholder;
   final Widget Function(BuildContext context, Object error)? errorWidget;
+  final bool isHighPriority;
 
   const _WebImage({
     required this.imageUrl,
     required this.fit,
     this.placeholder,
     this.errorWidget,
+    this.isHighPriority = false,
   });
 
   @override
@@ -45,20 +51,24 @@ class _WebImageState extends State<_WebImage> {
   void initState() {
     super.initState();
     _viewType =
-        'bili-img-${widget.imageUrl.hashCode}-${DateTime.now().millisecondsSinceEpoch}';
+        'bili-img-${Object.hash(widget.imageUrl, widget.fit, widget.isHighPriority)}';
     _registerViewFactory();
   }
 
   void _registerViewFactory() {
+    if (_registeredViewTypes.contains(_viewType)) {
+      return;
+    }
+    _registeredViewTypes.add(_viewType);
     ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
       final img = web.HTMLImageElement()
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.objectFit = _getObjectFit()
         ..style.pointerEvents = 'none'
-        ..setAttribute('loading', 'lazy')
+        ..setAttribute('loading', widget.isHighPriority ? 'eager' : 'lazy')
         ..setAttribute('decoding', 'async')
-        ..setAttribute('fetchpriority', 'auto')
+        ..setAttribute('fetchpriority', widget.isHighPriority ? 'high' : 'auto')
         ..setAttribute('referrerpolicy', 'no-referrer')
         ..src = widget.imageUrl;
 

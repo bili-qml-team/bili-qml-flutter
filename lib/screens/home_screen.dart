@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_handler/share_handler.dart';
+import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
@@ -296,7 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildLeaderboardContent() {
     return Consumer<LeaderboardProvider>(
       builder: (context, provider, _) {
-        if (provider.isLoading && provider.items.isEmpty) {
+        final items = provider.items;
+        if (provider.isLoading && items.isEmpty) {
           return const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -313,11 +315,11 @@ class _HomeScreenState extends State<HomeScreen> {
           return _buildCaptchaRequired(context, provider);
         }
 
-        if (provider.error != null && provider.items.isEmpty) {
+        if (provider.error != null && items.isEmpty) {
           return _buildError(context, provider);
         }
 
-        if (provider.items.isEmpty) {
+        if (items.isEmpty) {
           return const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -330,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        return _buildGrid(context, provider);
+        return _buildGrid(context, provider, items);
       },
     );
   }
@@ -384,7 +386,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildGrid(BuildContext context, LeaderboardProvider provider) {
+  Widget _buildGrid(
+    BuildContext context,
+    LeaderboardProvider provider,
+    List<LeaderboardItem> items,
+  ) {
     final settingsProvider = context.watch<SettingsProvider>();
 
     return RefreshIndicator(
@@ -400,6 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (constraints.maxWidth > 600) {
             crossAxisCount = 3;
           }
+          final highPriorityCount = crossAxisCount * 2;
 
           return NotificationListener<ScrollNotification>(
             onNotification: _handleScrollNotification,
@@ -417,16 +424,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       childAspectRatio: 0.75,
                     ),
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final item = provider.items[index];
+                      final item = items[index];
                       // 排名就是 index + 1（无限滚动模式）
                       final actualRank = index + 1;
                       return VideoCard(
                         item: item,
                         rank: actualRank,
                         isRank1Custom: settingsProvider.isRank1Custom,
+                        isHighPriorityImage: index < highPriorityCount,
                         onTap: () => _openVideo(context, item.bvid, item.title),
                       );
-                    }, childCount: provider.items.length),
+                    }, childCount: items.length),
                   ),
                 ),
                 // 加载更多指示器

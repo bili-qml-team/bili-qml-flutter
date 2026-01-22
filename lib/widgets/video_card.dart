@@ -12,6 +12,7 @@ class VideoCard extends StatefulWidget {
   final int rank;
   final bool isRank1Custom;
   final VoidCallback? onTap;
+  final bool isHighPriorityImage;
 
   const VideoCard({
     super.key,
@@ -19,6 +20,7 @@ class VideoCard extends StatefulWidget {
     required this.rank,
     this.isRank1Custom = true,
     this.onTap,
+    this.isHighPriorityImage = false,
   });
 
   @override
@@ -117,6 +119,7 @@ class _VideoCardState extends State<VideoCard> {
       content = BiliNetworkImage(
         imageUrl: widget.item.picUrl!,
         fit: BoxFit.cover,
+        isHighPriority: widget.isHighPriorityImage,
         placeholder: (context) => Container(
           color: Colors.grey[300],
           child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),

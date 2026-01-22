@@ -13,6 +13,14 @@ abstract class FilterableProvider<T> extends ChangeNotifier {
   /// 筛选条件
   FilterCriteria _criteria = const FilterCriteria.empty();
 
+  /// 原始数据版本号（用于缓存失效）
+  int _rawItemsVersion = 0;
+
+  /// 缓存的筛选结果
+  List<T> _cachedItems = const [];
+  int _cachedVersion = -1;
+  FilterCriteria? _cachedCriteria;
+
   /// 筛选引擎（延迟初始化）
   late final FilterEngine<T> _filterEngine;
 
@@ -49,11 +57,26 @@ abstract class FilterableProvider<T> extends ChangeNotifier {
   @protected
   set rawItems(List<T> items) {
     _rawItems = items;
+    markItemsDirty();
     notifyListeners();
   }
 
   /// 获取筛选后的数据列表（公开给UI使用）
-  List<T> get items => _filterEngine.filter(_rawItems, _criteria);
+  List<T> get items {
+    if (_criteria.isEmpty) {
+      return rawItems;
+    }
+
+    if (_cachedVersion == _rawItemsVersion && _cachedCriteria == _criteria) {
+      return _cachedItems;
+    }
+
+    final filtered = _filterEngine.filter(rawItems, _criteria);
+    _cachedItems = filtered;
+    _cachedCriteria = _criteria;
+    _cachedVersion = _rawItemsVersion;
+    return filtered;
+  }
 
   /// 获取当前筛选条件
   FilterCriteria get criteria => _criteria;
@@ -71,6 +94,7 @@ abstract class FilterableProvider<T> extends ChangeNotifier {
     if (_criteria == criteria) return;
 
     _criteria = criteria;
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -105,6 +129,7 @@ abstract class FilterableProvider<T> extends ChangeNotifier {
       clearMinDanmakuCount: clearMinDanmakuCount,
       clearMaxDanmakuCount: clearMaxDanmakuCount,
     );
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -113,6 +138,7 @@ abstract class FilterableProvider<T> extends ChangeNotifier {
     if (_criteria.isEmpty) return;
 
     _criteria = const FilterCriteria.empty();
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -148,13 +174,25 @@ abstract class FilterableProvider<T> extends ChangeNotifier {
       keyword: keyword?.trim(),
       upName: upName?.trim(),
     );
+    _invalidateCache();
     notifyListeners();
+  }
+
+  @protected
+  void markItemsDirty() {
+    _rawItemsVersion++;
+    _invalidateCache();
+  }
+
+  void _invalidateCache() {
+    _cachedVersion = -1;
+    _cachedCriteria = null;
   }
 
   /// 获取筛选结果统计信息
   FilterStatistics getFilterStatistics() {
     return FilterStatistics(
-      totalCount: _rawItems.length,
+      totalCount: rawItems.length,
       filteredCount: items.length,
       activeFilterCount: activeFilterCount,
       criteria: _criteria,

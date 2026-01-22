@@ -53,5 +53,5 @@ class GitHubConfig {
 /// 应用版本信息
 class AppVersion {
   /// 当前应用版本（需要与 pubspec.yaml 保持同步）
-  static const String current = '1.1.0';
+  static const String current = '1.1.1';
 }
