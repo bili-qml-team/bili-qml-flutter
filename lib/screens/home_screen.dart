@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_handler/share_handler.dart';
@@ -15,6 +16,30 @@ import 'history_screen.dart';
 /// 主页 - 排行榜
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  static OverlayEntry? _currentToast;
+
+  /// 显示右下角 Toast 通知
+  static void showBottomRightToast(BuildContext context, String message) {
+    _currentToast?.remove();
+    _currentToast = null;
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _ToastWidget(
+        message: message,
+        onDismiss: () {
+          if (_currentToast == entry) {
+            _currentToast?.remove();
+            _currentToast = null;
+          }
+        },
+      ),
+    );
+
+    _currentToast = entry;
+    Overlay.of(context).insert(entry);
+  }
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -39,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<LeaderboardProvider>().fetchLeaderboard();
       // 检查更新（仅非 Web 端）
       _checkForUpdate();
+      _handleWebUidFromQuery();
     });
 
     // 初始化分享监听
@@ -616,6 +642,140 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _handleWebUidFromQuery() async {
+    if (!kIsWeb) return;
+    final uid = Uri.base.queryParameters['uid']?.trim();
+    if (uid == null || uid.isEmpty) return;
+
+    final storageService = context.read<StorageService>();
+    final currentUid = storageService.getUserId();
+    if (currentUid == uid) return;
+
+    await storageService.setUserId(uid);
+    if (!mounted) return;
+    HomeScreen.showBottomRightToast(context, 'UID 已保存');
+  }
+}
+
+/// 右下角 Toast 组件
+class _ToastWidget extends StatefulWidget {
+  final String message;
+  final VoidCallback onDismiss;
+
+  const _ToastWidget({
+    required this.message,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_ToastWidget> createState() => _ToastWidgetState();
+}
+
+class _ToastWidgetState extends State<_ToastWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+  late Animation<Offset> _slide;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    _controller.forward();
+
+    // 5秒后自动消失
+    _timer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        _controller.reverse().then((_) {
+          widget.onDismiss();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Positioned(
+      bottom: 32,
+      right: 32,
+      child: Material(
+        color: Colors.transparent,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _opacity,
+              child: SlideTransition(
+                position: _slide,
+                child: child,
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: Border.all(
+                color: AppColors.biliBlue.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.success,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  widget.message,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

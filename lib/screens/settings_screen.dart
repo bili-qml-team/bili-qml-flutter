@@ -164,7 +164,7 @@ class SettingsScreen extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('设置 B站 UID'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -188,15 +188,15 @@ class SettingsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('取消'),
           ),
           if (settings.userId != null)
             TextButton(
               onPressed: () async {
                 await settings.setUserId(null);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
                 }
               },
               child: const Text('清除', style: TextStyle(color: AppColors.error)),
@@ -206,12 +206,12 @@ class SettingsScreen extends StatelessWidget {
               final userId = controller.text.trim();
               if (userId.isEmpty || RegExp(r'^\d+$').hasMatch(userId)) {
                 await settings.setUserId(userId.isEmpty ? null : userId);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
                 }
               } else {
                 ScaffoldMessenger.of(
-                  context,
+                  dialogContext,
                 ).showSnackBar(const SnackBar(content: Text('请输入有效的数字 UID')));
               }
             },
