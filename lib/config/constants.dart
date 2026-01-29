@@ -12,6 +12,7 @@ class ApiConfig {
   static const String storageKeyTheme = 'theme';
   static const String storageKeyRank1Setting = 'rank1Setting';
   static const String storageKeyUserId = 'userId';
+  static const String storageKeyVoteToken = 'voteToken';
 
   /// 排行榜缓存相关
   static const String storageKeyLeaderboardCache = 'leaderboard_cache';

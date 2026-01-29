@@ -21,6 +21,7 @@ dependencies:
   
   # 本地存储
   shared_preferences: ^2.3.0
+  flutter_secure_storage: ^9.2.2
   
   # WebView - 移动端
   # webview_flutter: ^4.10.0
