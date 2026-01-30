@@ -112,6 +112,11 @@ class _VideoScreenState extends State<VideoScreen> {
 
       if (!mounted) return;
 
+      if (_isTokenInvalid(response)) {
+        _showTokenExpiredDialog();
+        return;
+      }
+
       if (response.requiresCaptcha) {
         // 显示验证对话框
         final altchaService = AltchaService(apiService);
@@ -122,6 +127,11 @@ class _VideoScreenState extends State<VideoScreen> {
           final retryResponse = isVoting
               ? await apiService.vote(widget.bvid, userId, altcha: solution)
               : await apiService.unvote(widget.bvid, userId, altcha: solution);
+
+          if (_isTokenInvalid(retryResponse)) {
+            _showTokenExpiredDialog();
+            return;
+          }
 
           if (retryResponse.success) {
             await _reloadStatus();
@@ -159,6 +169,25 @@ class _VideoScreenState extends State<VideoScreen> {
     } catch (e) {
       debugPrint('Failed to reload status: $e');
     }
+  }
+
+  bool _isTokenInvalid(ApiResponse response) {
+    if (response.statusCode == 401) {
+      return true;
+    }
+    final error = response.error?.toLowerCase();
+    return error != null && error.contains('unauthorized');
+  }
+
+  void _showTokenExpiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => TokenGuideDialog(
+        reason: TokenGuideReason.expiredToken,
+        onOpenSettings: _openSettings,
+      ),
+    );
   }
 
   void _showVotePrerequisiteDialog({

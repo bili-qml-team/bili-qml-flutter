@@ -649,19 +649,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final storageService = context.read<StorageService>();
     final settingsProvider = context.read<SettingsProvider>();
+    final hasUid = uid != null && uid.isNotEmpty;
+    final hasToken = token != null && token.isNotEmpty;
+    var updatedUid = false;
+    var updatedToken = false;
 
-    if (uid != null && uid.isNotEmpty) {
-      final currentUid = storageService.getUserId();
-      if (currentUid != uid) {
-        await settingsProvider.setUserId(uid);
-        if (!mounted) return;
-        HomeScreen.showBottomRightToast(context, 'UID 已保存');
-      }
+    if (hasUid) {
+      // Web: always apply uid from query params (overwrite stored value)
+      await settingsProvider.setUserId(uid);
+      updatedUid = true;
+      if (!mounted) return;
     }
 
     if (from == 'extension') {
-      if (token != null && token.isNotEmpty) {
+      if (hasToken) {
         await settingsProvider.setVoteToken(token);
+        updatedToken = true;
       } else {
         final dismissed = storageService.getWebTokenGuideDismissed();
         if (!dismissed && mounted) {
@@ -672,6 +675,15 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       }
+    }
+
+    if (mounted && (updatedUid || updatedToken)) {
+      final message = updatedUid && updatedToken
+          ? 'UID 与 Token 已更新'
+          : updatedUid
+              ? 'UID 已更新'
+              : 'Token 已更新';
+      HomeScreen.showBottomRightToast(context, message);
     }
   }
 }
@@ -690,8 +702,7 @@ class _ToastWidget extends StatefulWidget {
   State<_ToastWidget> createState() => _ToastWidgetState();
 }
 
-class _ToastWidgetState extends State<_ToastWidget>
-    with SingleTickerProviderStateMixin {
+class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _opacity;
   late Animation<Offset> _slide;
@@ -702,28 +713,29 @@ class _ToastWidgetState extends State<_ToastWidget>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 300),
     );
 
     _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
 
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    // Slide from right (Offset(1, 0) means start 100% to the right)
+    _slide = Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
 
     _controller.forward();
 
-    // 5秒后自动消失
-    _timer = Timer(const Duration(seconds: 5), () {
-      if (mounted) {
-        _controller.reverse().then((_) {
-          widget.onDismiss();
-        });
-      }
-    });
+    // Auto dismiss after 5 seconds
+    _timer = Timer(const Duration(seconds: 5), _dismiss);
+  }
+
+  void _dismiss() {
+    _timer?.cancel();
+    if (mounted) {
+      _controller.reverse().then((_) => widget.onDismiss());
+    }
   }
 
   @override
@@ -735,59 +747,52 @@ class _ToastWidgetState extends State<_ToastWidget>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Positioned(
-      bottom: 32,
-      right: 32,
+      bottom: 24,
+      right: 24,
       child: Material(
         color: Colors.transparent,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _opacity,
-              child: SlideTransition(
-                position: _slide,
-                child: child,
-              ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              border: Border.all(
-                color: AppColors.biliBlue.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.success,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  widget.message,
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+        child: SlideTransition(
+          position: _slide,
+          child: FadeTransition(
+            opacity: _opacity,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.inverseSurface,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      widget.message,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onInverseSurface,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: _dismiss,
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onInverseSurface.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

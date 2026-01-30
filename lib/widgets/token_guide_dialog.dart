@@ -3,8 +3,17 @@ import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../theme/colors.dart';
 
+enum TokenGuideReason { missingToken, expiredToken }
+
 class TokenGuideDialog extends StatefulWidget {
-  const TokenGuideDialog({super.key});
+  final TokenGuideReason reason;
+  final VoidCallback? onOpenSettings;
+
+  const TokenGuideDialog({
+    super.key,
+    this.reason = TokenGuideReason.missingToken,
+    this.onOpenSettings,
+  });
 
   @override
   State<TokenGuideDialog> createState() => _TokenGuideDialogState();
@@ -27,12 +36,24 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isExpired = widget.reason == TokenGuideReason.expiredToken;
     final cardColor =
         isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
     final primaryText =
         isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final secondaryText =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final steps = isExpired
+        ? const [
+            '1. 去 B 站任意视频页',
+            '2. 打开插件设置下滑 → 获取 / 续期',
+            '3. 回到 App 在「设置」中更新 Token',
+          ]
+        : const [
+            '1. 去 B 站任意视频页',
+            '2. 打开插件设置下滑 → 获取 / 续期',
+            '3. 验证成功后重新点击查看web页面按钮跳转回来后即可投票',
+          ];
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -56,7 +77,7 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '还差一步即可投票',
+              isExpired ? '投票 Token 已失效' : '还差一步即可投票',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -65,52 +86,60 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
             ),
             const SizedBox(height: 12),
             Text(
-              '当前未绑定 Token，仅能查看榜单。',
+              isExpired
+                  ? '当前 Token 已失效，需要重新获取后才能继续投票。'
+                  : '当前未绑定 Token，仅能查看榜单。',
               style: TextStyle(
                 fontSize: 16,
                 color: secondaryText,
               ),
             ),
             const SizedBox(height: 16),
-            _buildStep(context, '1. 去 B 站任意视频页'),
-            const SizedBox(height: 8),
-            _buildStep(context, '2. 打开插件设置下滑 → 获取 / 续期'),
-            const SizedBox(height: 8),
-            _buildStep(context, '3. 验证成功后重新点击查看web页面按钮跳转回来后即可投票'),
+            ...steps
+                .map((step) => Column(
+                      children: [
+                        _buildStep(context, step),
+                        const SizedBox(height: 8),
+                      ],
+                    ))
+                .toList()
+              ..removeLast(),
             const SizedBox(height: 24),
             Row(
               children: [
-                SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: Checkbox(
-                    value: _doNotShowAgain,
-                    onChanged: (value) {
+                if (!isExpired) ...[
+                  SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: Checkbox(
+                      value: _doNotShowAgain,
+                      onChanged: (value) {
+                        setState(() {
+                          _doNotShowAgain = value ?? false;
+                        });
+                      },
+                      activeColor: AppColors.biliBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
                       setState(() {
-                        _doNotShowAgain = value ?? false;
+                        _doNotShowAgain = !_doNotShowAgain;
                       });
                     },
-                    activeColor: AppColors.biliBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                    child: Text(
+                      '不再提示',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: secondaryText,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _doNotShowAgain = !_doNotShowAgain;
-                    });
-                  },
-                  child: Text(
-                    '不再提示',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: secondaryText,
-                    ),
-                  ),
-                ),
+                ],
                 const Spacer(),
                 TextButton(
                   onPressed: _onDismiss,
@@ -132,6 +161,29 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
                     ),
                   ),
                 ),
+                if (widget.onOpenSettings != null) ...[
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      widget.onOpenSettings?.call();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.biliBlue,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      '去设置',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],

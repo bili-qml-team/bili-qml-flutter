@@ -124,6 +124,22 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
+                    icon: Icons.network_check,
+                    title: '服务状态',
+                    subtitle: '查看服务状态页',
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final uri = Uri.parse('https://up.xn--ddke3265e5ef.com/');
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                      }
+                    },
+                  ),
+                  _buildMenuItem(
+                    context,
                     icon: Icons.settings,
                     title: '设置',
                     subtitle: '自定义API、用户ID等',
