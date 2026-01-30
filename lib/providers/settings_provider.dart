@@ -39,7 +39,7 @@ class SettingsProvider extends ChangeNotifier {
     _userId = _storageService.getUserId();
 
     // 投票 Token
-    _voteToken = await _storageService.getVoteToken();
+    _voteToken = _normalizeVoteToken(await _storageService.getVoteToken());
     _apiService.updateVoteToken(_voteToken);
 
     notifyListeners();
@@ -75,10 +75,19 @@ class SettingsProvider extends ChangeNotifier {
 
   /// 设置投票 Token
   Future<void> setVoteToken(String? token) async {
-    _voteToken = token?.trim().isEmpty == true ? null : token;
+    _voteToken = _normalizeVoteToken(token);
     await _storageService.setVoteToken(_voteToken);
     _apiService.updateVoteToken(_voteToken);
     notifyListeners();
+  }
+
+  String? _normalizeVoteToken(String? token) {
+    final trimmed = token?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    final normalized = trimmed.replaceFirst(RegExp(r'^Bearer\s+', caseSensitive: false), '');
+    return normalized.trim().isEmpty ? null : normalized.trim();
   }
 
   /// 重置 API 端点为默认

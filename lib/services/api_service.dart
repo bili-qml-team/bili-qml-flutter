@@ -19,7 +19,16 @@ class ApiService {
 
   /// 更新投票 Token
   void updateVoteToken(String? token) {
-    _voteToken = token?.trim().isEmpty == true ? null : token;
+    _voteToken = _normalizeVoteToken(token);
+  }
+
+  String? _normalizeVoteToken(String? token) {
+    final trimmed = token?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    final normalized = trimmed.replaceFirst(RegExp(r'^Bearer\s+', caseSensitive: false), '');
+    return normalized.trim().isEmpty ? null : normalized.trim();
   }
 
   /// 获取当前 API 地址
