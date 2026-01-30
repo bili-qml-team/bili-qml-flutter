@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
 import '../models/models.dart';
@@ -20,6 +21,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   bool _requiresCaptcha = false;
   int _pendingDetailLoads = 0;
   bool _hasMoreFromServer = true;
+  bool _notifyScheduled = false;
 
   // 分页相关
   int _currentPage = 1;
@@ -64,7 +66,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
   List<LeaderboardItem> get rawItems => _allItems;
 
   @override
-  List<LeaderboardItem> get items => filterEngine.filter(_allItems, criteria);
+  List<LeaderboardItem> get items => super.items;
 
   @override
   set rawItems(List<LeaderboardItem> items) {
@@ -112,6 +114,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
     _currentPage = 1;
     _hasMoreFromServer = true;
     _allItems.clear();
+    markItemsDirty();
     _detailsRequestId++;
     notifyListeners();
     await fetchLeaderboard();
@@ -161,6 +164,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
 
       _allItems.clear();
       _allItems.addAll(items);
+      markItemsDirty();
       // 根据缓存数据计算当前页码
       _currentPage = (items.length / _itemsPerPage).ceil();
       if (_currentPage < 1) _currentPage = 1;
@@ -254,6 +258,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
       _requiresCaptcha = false;
       if (!shouldPreserveItems) {
         _allItems.clear();
+        markItemsDirty();
         _detailsRequestId++;
       }
       notifyListeners();
@@ -283,6 +288,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         _requiresCaptcha = !shouldPreserveItems;
         if (!shouldPreserveItems) {
           _allItems.clear();
+          markItemsDirty();
         }
       } else if (response.success) {
         debugPrint('Received ${response.list.length} items for page 1');
@@ -303,10 +309,12 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
             ..clear()
             ..addAll(response.list)
             ..addAll(preserved);
+          markItemsDirty();
         } else {
           _allItems
             ..clear()
             ..addAll(response.list);
+          markItemsDirty();
         }
 
         // 校验加载的数量是否与 API 返回的数量一致
@@ -327,10 +335,12 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
               ..clear()
               ..addAll(response.list)
               ..addAll(preserved);
+            markItemsDirty();
           } else {
             _allItems
               ..clear()
               ..addAll(response.list);
+            markItemsDirty();
           }
           final fixedCount = shouldPreserveItems
               ? response.list.length
@@ -386,6 +396,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         final startIndex = _allItems.length;
         final expectedNewItems = response.list.length;
         _allItems.addAll(response.list);
+        markItemsDirty();
         final actualNewItems = _allItems.length - startIndex;
 
         // 校验加载更多的数量是否与 API 返回的数量一致
@@ -398,6 +409,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
             _allItems.removeRange(startIndex, _allItems.length);
           }
           _allItems.addAll(response.list);
+          markItemsDirty();
           final fixedNewItems = _allItems.length - startIndex;
           if (fixedNewItems != expectedNewItems) {
             debugPrint(
@@ -471,7 +483,7 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
         await Future.wait(futures);
 
         if (requestId != _detailsRequestId) return;
-        notifyListeners();
+        _notifyListenersThrottled();
       }
     } finally {
       _pendingDetailLoads--;
@@ -509,11 +521,21 @@ class LeaderboardProvider extends FilterableProvider<LeaderboardItem> {
           viewCount: videoInfo.view,
           danmakuCount: videoInfo.danmaku,
         );
+        markItemsDirty();
       }
     } catch (e) {
       // 忽略单个视频信息加载失败
       debugPrint('Failed to load video info for ${item.bvid}: $e');
     }
+  }
+
+  void _notifyListenersThrottled() {
+    if (_notifyScheduled) return;
+    _notifyScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _notifyScheduled = false;
+      notifyListeners();
+    });
   }
 
   // ==================== 向后兼容的方法（已废弃）====================

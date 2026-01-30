@@ -21,7 +21,11 @@ class SettingsScreen extends StatelessWidget {
               _buildSection(
                 context,
                 title: '用户设置',
-                children: [_buildUserIdTile(context, settings)],
+                children: [
+                  _buildUserIdTile(context, settings),
+                  const SizedBox(height: 8),
+                  _buildVoteTokenTile(context, settings),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -159,12 +163,27 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildVoteTokenTile(BuildContext context, SettingsProvider settings) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('投票 Token'),
+      subtitle: Text(
+        settings.voteToken == null ? '未设置' : '已设置',
+        style: TextStyle(
+          color: settings.voteToken != null ? AppColors.biliBlue : null,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _showVoteTokenDialog(context, settings),
+    );
+  }
+
   void _showUserIdDialog(BuildContext context, SettingsProvider settings) {
     final controller = TextEditingController(text: settings.userId ?? '');
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('设置 B站 UID'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -188,15 +207,15 @@ class SettingsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('取消'),
           ),
           if (settings.userId != null)
             TextButton(
               onPressed: () async {
                 await settings.setUserId(null);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
                 }
               },
               child: const Text('清除', style: TextStyle(color: AppColors.error)),
@@ -206,13 +225,72 @@ class SettingsScreen extends StatelessWidget {
               final userId = controller.text.trim();
               if (userId.isEmpty || RegExp(r'^\d+$').hasMatch(userId)) {
                 await settings.setUserId(userId.isEmpty ? null : userId);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
                 }
               } else {
                 ScaffoldMessenger.of(
-                  context,
+                  dialogContext,
                 ).showSnackBar(const SnackBar(content: Text('请输入有效的数字 UID')));
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showVoteTokenDialog(
+    BuildContext context,
+    SettingsProvider settings,
+  ) {
+    final controller = TextEditingController(text: settings.voteToken ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('设置投票 Token'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '请输入从插件端获取的 Token，用于投票鉴权。',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Token',
+                hintText: '粘贴 Token',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('取消'),
+          ),
+          if (settings.voteToken != null)
+            TextButton(
+              onPressed: () async {
+                await settings.setVoteToken(null);
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+              child: const Text('清除', style: TextStyle(color: AppColors.error)),
+            ),
+          ElevatedButton(
+            onPressed: () async {
+              final token = controller.text.trim();
+              await settings.setVoteToken(token.isEmpty ? null : token);
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
               }
             },
             child: const Text('保存'),

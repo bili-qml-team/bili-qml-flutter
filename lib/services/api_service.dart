@@ -7,6 +7,7 @@ import '../models/models.dart';
 /// API 服务类
 class ApiService {
   String _apiBase;
+  String? _voteToken;
 
   ApiService({String? apiBase})
     : _apiBase = apiBase ?? ApiConfig.defaultApiBase;
@@ -14,6 +15,20 @@ class ApiService {
   /// 更新 API 地址
   void updateApiBase(String apiBase) {
     _apiBase = apiBase;
+  }
+
+  /// 更新投票 Token
+  void updateVoteToken(String? token) {
+    _voteToken = _normalizeVoteToken(token);
+  }
+
+  String? _normalizeVoteToken(String? token) {
+    final trimmed = token?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    final normalized = trimmed.replaceFirst(RegExp(r'^Bearer\s+', caseSensitive: false), '');
+    return normalized.trim().isEmpty ? null : normalized.trim();
   }
 
   /// 获取当前 API 地址
@@ -82,9 +97,14 @@ class ApiService {
       if (altcha != null) 'altcha': altcha,
     });
 
+    final headers = {
+      ..._headers,
+      if (_voteToken != null) 'Authorization': 'Bearer $_voteToken',
+    };
+
     final response = await http.post(
       uri,
-      headers: _headers,
+      headers: headers,
       body: jsonEncode(body),
     );
 

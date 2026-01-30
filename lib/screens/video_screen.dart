@@ -7,6 +7,7 @@ import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
 import '../theme/colors.dart';
+import 'settings_screen.dart';
 
 /// 视频详情页
 class VideoScreen extends StatefulWidget {
@@ -86,9 +87,16 @@ class _VideoScreenState extends State<VideoScreen> {
   Future<void> _handleVote() async {
     final settingsProvider = context.read<SettingsProvider>();
     final userId = settingsProvider.userId;
+    final voteToken = settingsProvider.voteToken;
 
-    if (userId == null || userId.isEmpty) {
-      _showUserIdDialog();
+    final missingUserId = userId == null || userId.isEmpty;
+    final missingToken = voteToken == null || voteToken.isEmpty;
+
+    if (missingUserId || missingToken) {
+      _showVotePrerequisiteDialog(
+        missingUserId: missingUserId,
+        missingToken: missingToken,
+      );
       return;
     }
 
@@ -104,6 +112,11 @@ class _VideoScreenState extends State<VideoScreen> {
 
       if (!mounted) return;
 
+      if (_isTokenInvalid(response)) {
+        _showTokenExpiredDialog();
+        return;
+      }
+
       if (response.requiresCaptcha) {
         // 显示验证对话框
         final altchaService = AltchaService(apiService);
@@ -114,6 +127,11 @@ class _VideoScreenState extends State<VideoScreen> {
           final retryResponse = isVoting
               ? await apiService.vote(widget.bvid, userId, altcha: solution)
               : await apiService.unvote(widget.bvid, userId, altcha: solution);
+
+          if (_isTokenInvalid(retryResponse)) {
+            _showTokenExpiredDialog();
+            return;
+          }
 
           if (retryResponse.success) {
             await _reloadStatus();
@@ -153,56 +171,63 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-  void _showUserIdDialog() {
-    final controller = TextEditingController();
+  bool _isTokenInvalid(ApiResponse response) {
+    if (response.statusCode == 401) {
+      return true;
+    }
+    final error = response.error?.toLowerCase();
+    return error != null && error.contains('unauthorized');
+  }
+
+  void _showTokenExpiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => TokenGuideDialog(
+        reason: TokenGuideReason.expiredToken,
+        onOpenSettings: _openSettings,
+      ),
+    );
+  }
+
+  void _showVotePrerequisiteDialog({
+    required bool missingUserId,
+    required bool missingToken,
+  }) {
+    final missingLabel =
+        missingUserId && missingToken
+            ? 'B站 UID 和投票 Token'
+            : missingUserId
+            ? 'B站 UID'
+            : '投票 Token';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('设置用户 ID'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '请输入您的 B站 UID（数字）以启用投票功能。\n\n'
-              '您可以在 B站个人主页找到您的 UID。',
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'B站 UID',
-                hintText: '例如: 12345678',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('无法投票'),
+        content: Text('当前未设置 $missingLabel。\n\n请前往「设置」填写后再投票。'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('知道了'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              final userId = controller.text.trim();
-              if (userId.isNotEmpty && RegExp(r'^\d+$').hasMatch(userId)) {
-                final settingsProvider = context.read<SettingsProvider>();
-                await settingsProvider.setUserId(userId);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                  _handleVote();
-                }
-              }
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _openSettings();
             },
-            child: const Text('确定'),
+            child: const Text('去设置'),
           ),
         ],
       ),
     );
+  }
+
+  void _openSettings() {
+    if (!mounted) return;
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
   }
 
   void _showSnackBar(String message) {

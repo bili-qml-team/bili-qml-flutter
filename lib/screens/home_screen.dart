@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_handler/share_handler.dart';
+import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../widgets/widgets.dart';
@@ -14,6 +16,30 @@ import 'history_screen.dart';
 /// 主页 - 排行榜
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  static OverlayEntry? _currentToast;
+
+  /// 显示右下角 Toast 通知
+  static void showBottomRightToast(BuildContext context, String message) {
+    _currentToast?.remove();
+    _currentToast = null;
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _ToastWidget(
+        message: message,
+        onDismiss: () {
+          if (_currentToast == entry) {
+            _currentToast?.remove();
+            _currentToast = null;
+          }
+        },
+      ),
+    );
+
+    _currentToast = entry;
+    Overlay.of(context).insert(entry);
+  }
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -38,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<LeaderboardProvider>().fetchLeaderboard();
       // 检查更新（仅非 Web 端）
       _checkForUpdate();
+      _handleWebParams();
     });
 
     // 初始化分享监听
@@ -151,12 +178,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _intentSub?.cancel();
-    _scrollController.dispose();
-    super.dispose();
-  }
 
   /// 处理滚动事件，检测是否需要加载更多
   ///
@@ -296,7 +317,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildLeaderboardContent() {
     return Consumer<LeaderboardProvider>(
       builder: (context, provider, _) {
-        if (provider.isLoading && provider.items.isEmpty) {
+        final items = provider.items;
+        if (provider.isLoading && items.isEmpty) {
           return const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -313,11 +335,11 @@ class _HomeScreenState extends State<HomeScreen> {
           return _buildCaptchaRequired(context, provider);
         }
 
-        if (provider.error != null && provider.items.isEmpty) {
+        if (provider.error != null && items.isEmpty) {
           return _buildError(context, provider);
         }
 
-        if (provider.items.isEmpty) {
+        if (items.isEmpty) {
           return const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -330,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        return _buildGrid(context, provider);
+        return _buildGrid(context, provider, items);
       },
     );
   }
@@ -384,7 +406,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildGrid(BuildContext context, LeaderboardProvider provider) {
+  Widget _buildGrid(
+    BuildContext context,
+    LeaderboardProvider provider,
+    List<LeaderboardItem> items,
+  ) {
     final settingsProvider = context.watch<SettingsProvider>();
 
     return RefreshIndicator(
@@ -400,6 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (constraints.maxWidth > 600) {
             crossAxisCount = 3;
           }
+          final highPriorityCount = crossAxisCount * 2;
 
           return NotificationListener<ScrollNotification>(
             onNotification: _handleScrollNotification,
@@ -417,16 +444,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       childAspectRatio: 0.75,
                     ),
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final item = provider.items[index];
+                      final item = items[index];
                       // 排名就是 index + 1（无限滚动模式）
                       final actualRank = index + 1;
                       return VideoCard(
                         item: item,
                         rank: actualRank,
                         isRank1Custom: settingsProvider.isRank1Custom,
+                        isHighPriorityImage: index < highPriorityCount,
                         onTap: () => _openVideo(context, item.bvid, item.title),
                       );
-                    }, childCount: provider.items.length),
+                    }, childCount: items.length),
                   ),
                 ),
                 // 加载更多指示器
@@ -608,6 +636,167 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _handleWebParams() async {
+    if (!kIsWeb) return;
+
+    final queryParams = Uri.base.queryParameters;
+    final uid = queryParams['uid']?.trim();
+    final token = queryParams['token']?.trim();
+    final from = queryParams['from']?.trim();
+
+    final storageService = context.read<StorageService>();
+    final settingsProvider = context.read<SettingsProvider>();
+    final hasUid = uid != null && uid.isNotEmpty;
+    final hasToken = token != null && token.isNotEmpty;
+    var updatedUid = false;
+    var updatedToken = false;
+
+    if (hasUid) {
+      // Web: always apply uid from query params (overwrite stored value)
+      await settingsProvider.setUserId(uid);
+      updatedUid = true;
+      if (!mounted) return;
+    }
+
+    if (from == 'extension') {
+      if (hasToken) {
+        await settingsProvider.setVoteToken(token);
+        updatedToken = true;
+      } else {
+        final dismissed = storageService.getWebTokenGuideDismissed();
+        if (!dismissed && mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (context) => const TokenGuideDialog(),
+          );
+        }
+      }
+    }
+
+    if (mounted && (updatedUid || updatedToken)) {
+      final message = updatedUid && updatedToken
+          ? 'UID 与 Token 已更新'
+          : updatedUid
+              ? 'UID 已更新'
+              : 'Token 已更新';
+      HomeScreen.showBottomRightToast(context, message);
+    }
+  }
+}
+
+/// 右下角 Toast 组件
+class _ToastWidget extends StatefulWidget {
+  final String message;
+  final VoidCallback onDismiss;
+
+  const _ToastWidget({
+    required this.message,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_ToastWidget> createState() => _ToastWidgetState();
+}
+
+class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+  late Animation<Offset> _slide;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    // Slide from right (Offset(1, 0) means start 100% to the right)
+    _slide = Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _controller.forward();
+
+    // Auto dismiss after 5 seconds
+    _timer = Timer(const Duration(seconds: 5), _dismiss);
+  }
+
+  void _dismiss() {
+    _timer?.cancel();
+    if (mounted) {
+      _controller.reverse().then((_) => widget.onDismiss());
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 24,
+      right: 24,
+      child: Material(
+        color: Colors.transparent,
+        child: SlideTransition(
+          position: _slide,
+          child: FadeTransition(
+            opacity: _opacity,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.inverseSurface,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      widget.message,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onInverseSurface,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: _dismiss,
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onInverseSurface.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

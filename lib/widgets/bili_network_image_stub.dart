@@ -8,6 +8,7 @@ Widget buildPlatformImage({
   required BoxFit fit,
   Widget Function(BuildContext context)? placeholder,
   Widget Function(BuildContext context, Object error)? errorWidget,
+  bool isHighPriority = false,
 }) {
   return CachedNetworkImage(
     imageUrl: imageUrl,

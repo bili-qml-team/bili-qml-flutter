@@ -1,9 +1,11 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
 
 /// 本地存储服务
 class StorageService {
   SharedPreferences? _prefs;
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   /// 初始化
   Future<void> init() async {
@@ -19,6 +21,38 @@ class StorageService {
 
   /// 获取 SharedPreferences 实例（用于其他服务）
   SharedPreferences get prefs => _preferences;
+
+  // ==================== 投票 Token ====================
+
+  Future<void> setVoteToken(String? token) async {
+    if (token == null || token.isEmpty) {
+      await _secureStorage.delete(key: ApiConfig.storageKeyVoteToken);
+    } else {
+      await _secureStorage.write(key: ApiConfig.storageKeyVoteToken, value: token);
+    }
+  }
+
+  Future<String?> getVoteToken() async {
+    return _secureStorage.read(key: ApiConfig.storageKeyVoteToken);
+  }
+
+  Future<void> clearVoteToken() async {
+    await _secureStorage.delete(key: ApiConfig.storageKeyVoteToken);
+  }
+
+  // ==================== Web Token 提示 ====================
+
+  bool getWebTokenGuideDismissed() {
+    return _preferences.getBool(ApiConfig.storageKeyWebTokenGuideDismissed) ??
+        false;
+  }
+
+  Future<void> setWebTokenGuideDismissed(bool value) async {
+    await _preferences.setBool(
+      ApiConfig.storageKeyWebTokenGuideDismissed,
+      value,
+    );
+  }
 
   // ==================== 主题设置 ====================
 

@@ -10,6 +10,7 @@ class SettingsProvider extends ChangeNotifier {
   String _rank1Setting = 'custom';
   String _apiEndpoint = ApiConfig.defaultApiBase;
   String? _userId;
+  String? _voteToken;
 
   SettingsProvider(this._storageService, this._apiService) {
     _loadSettings();
@@ -20,9 +21,10 @@ class SettingsProvider extends ChangeNotifier {
   String get rank1Setting => _rank1Setting;
   String get apiEndpoint => _apiEndpoint;
   String? get userId => _userId;
+  String? get voteToken => _voteToken;
   bool get isRank1Custom => _rank1Setting == 'custom';
 
-  void _loadSettings() {
+  Future<void> _loadSettings() async {
     // 第一名显示设置
     _rank1Setting = _storageService.getRank1Setting();
 
@@ -35,6 +37,10 @@ class SettingsProvider extends ChangeNotifier {
 
     // 用户 ID
     _userId = _storageService.getUserId();
+
+    // 投票 Token
+    _voteToken = _normalizeVoteToken(await _storageService.getVoteToken());
+    _apiService.updateVoteToken(_voteToken);
 
     notifyListeners();
   }
@@ -65,6 +71,23 @@ class SettingsProvider extends ChangeNotifier {
     _userId = userId;
     await _storageService.setUserId(userId);
     notifyListeners();
+  }
+
+  /// 设置投票 Token
+  Future<void> setVoteToken(String? token) async {
+    _voteToken = _normalizeVoteToken(token);
+    await _storageService.setVoteToken(_voteToken);
+    _apiService.updateVoteToken(_voteToken);
+    notifyListeners();
+  }
+
+  String? _normalizeVoteToken(String? token) {
+    final trimmed = token?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    final normalized = trimmed.replaceFirst(RegExp(r'^Bearer\s+', caseSensitive: false), '');
+    return normalized.trim().isEmpty ? null : normalized.trim();
   }
 
   /// 重置 API 端点为默认

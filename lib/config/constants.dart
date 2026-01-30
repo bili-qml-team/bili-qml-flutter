@@ -12,6 +12,9 @@ class ApiConfig {
   static const String storageKeyTheme = 'theme';
   static const String storageKeyRank1Setting = 'rank1Setting';
   static const String storageKeyUserId = 'userId';
+  static const String storageKeyVoteToken = 'voteToken';
+  static const String storageKeyWebTokenGuideDismissed =
+      'web_token_guide_dismissed';
 
   /// 排行榜缓存相关
   static const String storageKeyLeaderboardCache = 'leaderboard_cache';
@@ -53,5 +56,5 @@ class GitHubConfig {
 /// 应用版本信息
 class AppVersion {
   /// 当前应用版本（需要与 pubspec.yaml 保持同步）
-  static const String current = '1.1.0';
+  static const String current = '1.2.0';
 }

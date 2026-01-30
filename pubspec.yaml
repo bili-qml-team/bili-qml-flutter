@@ -2,7 +2,7 @@ name: bili_qml_app
 description: "B站问号榜 - 抽象视频排行榜 Flutter 客户端"
 publish_to: 'none'
 
-version: 1.1.0+2
+version: 1.2.0+4
 
 environment:
   sdk: ^3.10.7
@@ -21,6 +21,7 @@ dependencies:
   
   # 本地存储
   shared_preferences: ^2.3.0
+  flutter_secure_storage: ^9.2.2
   
   # WebView - 移动端
   # webview_flutter: ^4.10.0

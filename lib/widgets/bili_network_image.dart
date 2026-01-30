@@ -12,6 +12,7 @@ class BiliNetworkImage extends StatelessWidget {
   final BoxFit? fit;
   final Widget Function(BuildContext context)? placeholder;
   final Widget Function(BuildContext context, Object error)? errorWidget;
+  final bool isHighPriority;
 
   const BiliNetworkImage({
     super.key,
@@ -19,6 +20,7 @@ class BiliNetworkImage extends StatelessWidget {
     this.fit,
     this.placeholder,
     this.errorWidget,
+    this.isHighPriority = false,
   });
 
   @override
@@ -30,6 +32,7 @@ class BiliNetworkImage extends StatelessWidget {
       fit: fit ?? BoxFit.cover,
       placeholder: placeholder,
       errorWidget: errorWidget,
+      isHighPriority: isHighPriority,
     );
   }
 }
