@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<LeaderboardProvider>().fetchLeaderboard();
       // 检查更新（仅非 Web 端）
       _checkForUpdate();
-      _handleWebUidFromQuery();
+      _handleWebParams();
     });
 
     // 初始化分享监听
@@ -178,12 +178,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _intentSub?.cancel();
-    _scrollController.dispose();
-    super.dispose();
-  }
 
   /// 处理滚动事件，检测是否需要加载更多
   ///
@@ -645,18 +639,40 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _handleWebUidFromQuery() async {
+  Future<void> _handleWebParams() async {
     if (!kIsWeb) return;
-    final uid = Uri.base.queryParameters['uid']?.trim();
-    if (uid == null || uid.isEmpty) return;
+
+    final queryParams = Uri.base.queryParameters;
+    final uid = queryParams['uid']?.trim();
+    final token = queryParams['token']?.trim();
+    final from = queryParams['from']?.trim();
 
     final storageService = context.read<StorageService>();
-    final currentUid = storageService.getUserId();
-    if (currentUid == uid) return;
+    final settingsProvider = context.read<SettingsProvider>();
 
-    await storageService.setUserId(uid);
-    if (!mounted) return;
-    HomeScreen.showBottomRightToast(context, 'UID 已保存');
+    if (uid != null && uid.isNotEmpty) {
+      final currentUid = storageService.getUserId();
+      if (currentUid != uid) {
+        await settingsProvider.setUserId(uid);
+        if (!mounted) return;
+        HomeScreen.showBottomRightToast(context, 'UID 已保存');
+      }
+    }
+
+    if (from == 'extension') {
+      if (token != null && token.isNotEmpty) {
+        await settingsProvider.setVoteToken(token);
+      } else {
+        final dismissed = storageService.getWebTokenGuideDismissed();
+        if (!dismissed && mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (context) => const TokenGuideDialog(),
+          );
+        }
+      }
+    }
   }
 }
 

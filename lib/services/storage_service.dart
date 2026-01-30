@@ -40,6 +40,20 @@ class StorageService {
     await _secureStorage.delete(key: ApiConfig.storageKeyVoteToken);
   }
 
+  // ==================== Web Token 提示 ====================
+
+  bool getWebTokenGuideDismissed() {
+    return _preferences.getBool(ApiConfig.storageKeyWebTokenGuideDismissed) ??
+        false;
+  }
+
+  Future<void> setWebTokenGuideDismissed(bool value) async {
+    await _preferences.setBool(
+      ApiConfig.storageKeyWebTokenGuideDismissed,
+      value,
+    );
+  }
+
   // ==================== 主题设置 ====================
 
   /// 获取主题设置

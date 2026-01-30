@@ -8,3 +8,4 @@ export 'share_card_template.dart';
 export 'app_drawer.dart';
 export 'bili_network_image.dart';
 export 'update_dialog.dart';
+export 'token_guide_dialog.dart';
