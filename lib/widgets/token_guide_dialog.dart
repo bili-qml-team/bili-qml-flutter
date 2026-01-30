@@ -74,9 +74,9 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
             const SizedBox(height: 16),
             _buildStep(context, '1. 去 B 站任意视频页'),
             const SizedBox(height: 8),
-            _buildStep(context, '2. 打开插件 → 获取 / 续期'),
+            _buildStep(context, '2. 打开插件设置下滑 → 获取 / 续期'),
             const SizedBox(height: 8),
-            _buildStep(context, '3. 验证成功后回来刷新即可投票'),
+            _buildStep(context, '3. 验证成功后重新点击查看web页面按钮跳转回来后即可投票'),
             const SizedBox(height: 24),
             Row(
               children: [
