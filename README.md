@@ -18,7 +18,7 @@ iOS 因为开发者无 Mac，所以无法测试，暂不支持。
 前往 [Releases](https://github.com/bili-qml-team/bili-qml-flutter/releases) 下载
    * Windows版解压后运行 **bili_qml_app.exe**
    * 安卓版安装APK即可
-   * Web版可通过在线地址访问（暂无）
+   * [Web版](https://web.bili-qml.com/)
 
 # 开发教程
 
