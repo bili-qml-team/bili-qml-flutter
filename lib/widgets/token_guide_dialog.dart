@@ -72,11 +72,11 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildStep('1. 去 B 站任意视频页'),
+            _buildStep(context, '1. 去 B 站任意视频页'),
             const SizedBox(height: 8),
-            _buildStep('2. 打开插件 → 获取 / 续期'),
+            _buildStep(context, '2. 打开插件 → 获取 / 续期'),
             const SizedBox(height: 8),
-            _buildStep('3. 验证成功后回来刷新即可投票'),
+            _buildStep(context, '3. 验证成功后回来刷新即可投票'),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -140,7 +140,10 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
     );
   }
 
-  Widget _buildStep(String text) {
+  Widget _buildStep(BuildContext context, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,7 +152,7 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
           width: 6,
           height: 6,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: AppColors.biliBlue,
             shape: BoxShape.circle,
           ),
         ),
@@ -158,7 +161,7 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
             text,
             style: TextStyle(
               fontSize: 15,
-              color: primaryText,
+              color: textColor,
               height: 1.4,
             ),
           ),
