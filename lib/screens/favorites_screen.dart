@@ -371,12 +371,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               final provider = context.read<FavoritesProvider>();
               final success = await provider.removeFavorite(item.bvid);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success ? '已移除收藏' : '移除失败'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                if (success) {
+                  StatusFeedback.success(context, '已移除收藏');
+                } else {
+                  StatusFeedback.error(context, '移除失败');
+                }
               }
             },
             child: const Text('移除'),
@@ -403,15 +402,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               final provider = context.read<FavoritesProvider>();
               final success = await provider.clearAll();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success ? '已清空收藏' : '清空失败'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                if (success) {
+                  StatusFeedback.success(context, '已清空收藏');
+                } else {
+                  StatusFeedback.error(context, '清空失败');
+                }
               }
             },
-            child: const Text('清空', style: TextStyle(color: Colors.red)),
+            child: const Text('清空', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),

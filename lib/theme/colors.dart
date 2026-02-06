@@ -17,13 +17,18 @@ class AppColors {
   static const lightDivider = Color(0xFFE3E5E7);
 
   // 深色主题
-  static const darkBackground = Color(0xFF1A1A1A);
-  static const darkCardBackground = Color(0xFF2D2D2D);
+  static const darkBackground = Color(0xFF17191D);
+  static const darkCardBackground = Color(0xFF23262C);
+  static const darkCardBackgroundElevated = Color(0xFF2A2E36);
   static const darkTextPrimary = Color(0xFFE3E5E7);
-  static const darkTextSecondary = Color(0xFF9499A0);
-  static const darkTextTertiary = Color(0xFF61666D);
-  static const darkBorder = Color(0xFF3D3D3D);
-  static const darkDivider = Color(0xFF3D3D3D);
+  static const darkTextSecondary = Color(0xFFA8AFB8);
+  static const darkTextTertiary = Color(0xFF8A919B);
+  static const darkBorder = Color(0xFF3A404A);
+  static const darkDivider = Color(0xFF343942);
+
+  // 交互层颜色
+  static const overlayOnImageLight = Color(0x8F000000);
+  static const overlayOnImageDark = Color(0xB2000000);
 
   // 排名颜色
   static const rank1 = Color(0xFFFFD700); // 金色

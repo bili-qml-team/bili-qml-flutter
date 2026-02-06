@@ -15,9 +15,14 @@ class SearchBottomSheet extends StatefulWidget {
   /// 
   /// 自动检测当前页面的 Provider 类型（LeaderboardProvider、FavoritesProvider、HistoryProvider）
   static Future<void> show(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: isDark
+          ? AppColors.darkCardBackgroundElevated
+          : AppColors.lightCardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -77,6 +82,7 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     // 如果没有找到 Provider，显示错误信息
@@ -99,8 +105,21 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
                 // 标题栏
                 _buildHeader(theme),
+                const SizedBox(height: 12),
+                Divider(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                 const SizedBox(height: 16),
 
                 // 关键词搜索
@@ -141,9 +160,7 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
         const SizedBox(width: 8),
         Text(
           '搜索与筛选',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const Spacer(),
         if (_provider!.hasActiveFilters)
@@ -153,6 +170,10 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
               _keywordController.clear();
               _upNameController.clear();
             },
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.biliBlue,
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             child: const Text('清除'),
           ),
         IconButton(
@@ -171,7 +192,6 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
         labelText: '搜索视频标题',
         hintText: '输入关键词...',
         prefixIcon: const Icon(Icons.video_library),
-        border: const OutlineInputBorder(),
         suffixIcon: _keywordController.text.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.clear),
@@ -194,7 +214,6 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
         labelText: 'UP主名称',
         hintText: '按UP主筛选...',
         prefixIcon: const Icon(Icons.person),
-        border: const OutlineInputBorder(),
         suffixIcon: _upNameController.text.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.clear),
@@ -219,7 +238,8 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
             Text(
               '搜索历史',
               style: theme.textTheme.titleSmall?.copyWith(
-                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+                color: theme.textTheme.bodyMedium?.color,
               ),
             ),
             const Spacer(),
@@ -296,15 +316,17 @@ class _SearchBottomSheetState extends State<SearchBottomSheet> {
   Widget _buildApplyButton() {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _applySearch,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: AppColors.biliBlue,
-          foregroundColor: Colors.white,
-        ),
-        child: const Text(
-          '应用筛选',
+        child: ElevatedButton(
+          onPressed: _applySearch,
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: AppColors.biliBlue,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: const Text(
+            '应用筛选',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,

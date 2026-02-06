@@ -25,6 +25,16 @@ class UpdateDialog extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return AlertDialog(
+      backgroundColor: isDark
+          ? AppColors.darkCardBackgroundElevated
+          : AppColors.lightCardBackground,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
       title: Row(
         children: [
           Container(
@@ -39,11 +49,15 @@ class UpdateDialog extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('发现新版本'),
-                Text(
-                  'v${releaseInfo.version}',
-                  style: TextStyle(
+                children: [
+                  Text(
+                    '发现新版本',
+                    style:
+                        theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    'v${releaseInfo.version}',
+                    style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.normal,
                     color: AppColors.biliBlue,
@@ -62,8 +76,8 @@ class UpdateDialog extends StatelessWidget {
             if (releaseInfo.body.isNotEmpty) ...[
               Text(
                 '更新内容：',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: isDark
                       ? AppColors.darkTextPrimary
                       : AppColors.lightTextPrimary,
@@ -77,6 +91,9 @@ class UpdateDialog extends StatelessWidget {
                       ? AppColors.darkCardBackground
                       : AppColors.lightBackground,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                  ),
                 ),
                 constraints: const BoxConstraints(maxHeight: 200),
                 child: SingleChildScrollView(
@@ -129,6 +146,10 @@ class UpdateDialog extends StatelessWidget {
                 label: const Text('加入 QQ 群'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -138,6 +159,10 @@ class UpdateDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.biliBlue,
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          ),
           child: const Text('稍后提醒'),
         ),
       ],

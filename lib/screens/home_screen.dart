@@ -666,9 +666,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    StatusFeedback.error(context, message);
   }
 
   Future<void> _handleWebParams() async {

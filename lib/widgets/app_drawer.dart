@@ -26,129 +26,142 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final drawerBackground = isDark
+        ? AppColors.darkCardBackgroundElevated
+        : AppColors.lightCardBackground;
 
     return Drawer(
+      backgroundColor: drawerBackground,
+      surfaceTintColor: Colors.transparent,
       child: SafeArea(
         child: Column(
           children: [
             // 头部
             _buildHeader(context, isDark),
-            const Divider(height: 1),
+            Divider(height: 1, color: dividerColor),
             // 菜单列表
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.history,
-                    title: '浏览历史',
-                    subtitle: '查看最近浏览的视频',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onHistoryTap();
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.favorite,
-                    title: '我的收藏',
-                    subtitle: '管理收藏的视频',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onFavoritesTap();
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.video_library,
-                    title: '搜索BV号',
-                    subtitle: '通过BV号或链接查找视频',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSearchBvTap();
-                    },
-                  ),
-                  const Divider(),
-                  _buildThemeToggle(context, isDark),
-                  Consumer<PwaInstallService>(
-                    builder: (context, pwaInstallService, _) {
-                      if (!kIsWeb || pwaInstallService.isStandaloneMode) {
-                        return const SizedBox.shrink();
-                      }
+              child: ListTileTheme(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.history,
+                      title: '浏览历史',
+                      subtitle: '查看最近浏览的视频',
+                      onTap: () {
+                        Navigator.pop(context);
+                        onHistoryTap();
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.favorite,
+                      title: '我的收藏',
+                      subtitle: '管理收藏的视频',
+                      onTap: () {
+                        Navigator.pop(context);
+                        onFavoritesTap();
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.video_library,
+                      title: '搜索BV号',
+                      subtitle: '通过BV号或链接查找视频',
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSearchBvTap();
+                      },
+                    ),
+                    Divider(color: dividerColor),
+                    _buildThemeToggle(context, isDark),
+                    Consumer<PwaInstallService>(
+                      builder: (context, pwaInstallService, _) {
+                        if (!kIsWeb || pwaInstallService.isStandaloneMode) {
+                          return const SizedBox.shrink();
+                        }
 
-                      final showInstallButton =
-                          pwaInstallService.isInstallPromptAvailable;
-                      final showIosTip =
-                          pwaInstallService.isIosDevice &&
-                          !pwaInstallService.isInstallPromptAvailable;
+                        final showInstallButton =
+                            pwaInstallService.isInstallPromptAvailable;
+                        final showIosTip =
+                            pwaInstallService.isIosDevice &&
+                            !pwaInstallService.isInstallPromptAvailable;
 
-                      if (!showInstallButton && !showIosTip) {
-                        return const SizedBox.shrink();
-                      }
+                        if (!showInstallButton && !showIosTip) {
+                          return const SizedBox.shrink();
+                        }
 
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (showInstallButton)
-                            _buildMenuItem(
-                              context,
-                              icon: Icons.download,
-                              title: '安装应用',
-                              subtitle: '添加到桌面或主屏幕',
-                              onTap: () {
-                                Navigator.pop(context);
-                                pwaInstallService.promptInstall();
-                              },
-                            ),
-                          if (showIosTip) _buildIosInstallTip(context, isDark),
-                        ],
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.group_add,
-                    title: '加入QQ群',
-                    subtitle: '点击加入交流群',
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final uri = Uri.parse('https://qm.qq.com/q/Yc8xTHKZqA');
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (showInstallButton)
+                              _buildMenuItem(
+                                context,
+                                icon: Icons.download,
+                                title: '安装应用',
+                                subtitle: '添加到桌面或主屏幕',
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  pwaInstallService.promptInstall();
+                                },
+                              ),
+                            if (showIosTip) _buildIosInstallTip(context, isDark),
+                          ],
                         );
-                      }
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.network_check,
-                    title: '服务状态',
-                    subtitle: '查看服务状态页',
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final uri = Uri.parse('https://up.xn--ddke3265e5ef.com/');
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.settings,
-                    title: '设置',
-                    subtitle: '自定义API、用户ID等',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSettingsTap();
-                    },
-                  ),
-                ],
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.group_add,
+                      title: '加入QQ群',
+                      subtitle: '点击加入交流群',
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final uri = Uri.parse('https://qm.qq.com/q/Yc8xTHKZqA');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.network_check,
+                      title: '服务状态',
+                      subtitle: '查看服务状态页',
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final uri = Uri.parse('https://up.xn--ddke3265e5ef.com/');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.settings,
+                      title: '设置',
+                      subtitle: '自定义API、用户ID等',
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSettingsTap();
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
             // 底部版本信息
@@ -217,16 +230,20 @@ class AppDrawer extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return ListTile(
+      minLeadingWidth: 20,
       leading: Icon(
         icon,
         color: isDark
             ? AppColors.darkTextSecondary
             : AppColors.lightTextSecondary,
       ),
-      title: Text(title),
+      title: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
+        style: theme.textTheme.bodySmall?.copyWith(
           fontSize: 12,
           color: isDark
               ? AppColors.darkTextTertiary
@@ -260,16 +277,21 @@ class AppDrawer extends StatelessWidget {
         }
 
         return ListTile(
+          minLeadingWidth: 20,
           leading: Icon(
             modeIcon,
             color: isDark
                 ? AppColors.darkTextSecondary
                 : AppColors.lightTextSecondary,
           ),
-          title: const Text('主题'),
+          title: Text(
+            '主题',
+            style:
+                Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
           subtitle: Text(
             modeText,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 12,
               color: isDark
                   ? AppColors.darkTextTertiary
@@ -335,6 +357,13 @@ class AppDrawer extends StatelessWidget {
 
   Widget _buildFooter(BuildContext context, bool isDark) {
     return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+          ),
+        ),
+      ),
       padding: const EdgeInsets.all(16),
       child: GestureDetector(
         onTap: () async {

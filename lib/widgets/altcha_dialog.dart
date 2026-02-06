@@ -73,9 +73,21 @@ class _AltchaDialogState extends State<AltchaDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBackground = isDark
+        ? AppColors.darkCardBackgroundElevated
+        : AppColors.lightCardBackground;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: dialogBackground,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
       contentPadding: const EdgeInsets.all(24),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -88,7 +100,7 @@ class _AltchaDialogState extends State<AltchaDialog> {
           Text(
             '人机验证',
             style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 12),
@@ -118,40 +130,43 @@ class _AltchaDialogState extends State<AltchaDialog> {
 
           // 按钮区域
           if (!_isVerifying) ...[
+            Divider(color: dividerColor),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // 开始验证按钮
-                ElevatedButton(
-                  onPressed: _startVerification,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.biliBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 12,
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _startVerification,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.biliBlue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                    child: const Text('开始验证'),
                   ),
-                  child: const Text('开始验证'),
                 ),
                 const SizedBox(width: 12),
                 // 取消按钮
-                OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(null),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(null),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      side: BorderSide(color: dividerColor),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                    child: const Text('取消'),
                   ),
-                  child: const Text('取消'),
                 ),
               ],
             ),

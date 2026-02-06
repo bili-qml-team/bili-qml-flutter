@@ -5,6 +5,7 @@ import '../providers/providers.dart';
 import '../theme/colors.dart';
 import 'share_options_dialog.dart';
 import 'bili_network_image.dart';
+import 'status_feedback.dart';
 
 /// 视频卡片组件
 class VideoCard extends StatefulWidget {
@@ -63,7 +64,7 @@ class _VideoCardState extends State<VideoCard> {
                     fit: StackFit.expand,
                     children: [
                       // 封面图
-                      _buildThumbnail(),
+                      _buildThumbnail(isDark),
                       // 排名徽章
                       Positioned(
                         left: isWideCard ? 10 : 8,
@@ -74,7 +75,7 @@ class _VideoCardState extends State<VideoCard> {
                       Positioned(
                         right: isWideCard ? 10 : 8,
                         top: isWideCard ? 10 : 8,
-                        child: _buildShareButton(context, isWideCard),
+                        child: _buildShareButton(context, isWideCard, isDark),
                       ),
                       // 底部操作栏
                       Positioned(
@@ -84,10 +85,10 @@ class _VideoCardState extends State<VideoCard> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             // 收藏按钮
-                            _buildFavoriteButton(context, isWideCard),
+                            _buildFavoriteButton(context, isWideCard, isDark),
                             const SizedBox(width: 4),
                             // 抽象指数
-                            _buildScoreTag(isWideCard),
+                            _buildScoreTag(isWideCard, isDark),
                           ],
                         ),
                       ),
@@ -128,14 +129,24 @@ class _VideoCardState extends State<VideoCard> {
     );
   }
 
-  Widget _buildThumbnail() {
+  Widget _buildThumbnail(bool isDark) {
     Widget content;
+    final placeholderColor = isDark
+        ? AppColors.darkCardBackgroundElevated
+        : Colors.grey[300];
+    final placeholderIconColor = isDark
+        ? AppColors.darkTextTertiary
+        : Colors.grey;
 
     if (widget.item.picUrl == null || widget.item.picUrl!.isEmpty) {
       content = Container(
-        color: Colors.grey[300],
-        child: const Center(
-          child: Icon(Icons.video_library, size: 48, color: Colors.grey),
+        color: placeholderColor,
+        child: Center(
+          child: Icon(
+            Icons.video_library,
+            size: 48,
+            color: placeholderIconColor,
+          ),
         ),
       );
     } else {
@@ -144,13 +155,17 @@ class _VideoCardState extends State<VideoCard> {
         fit: BoxFit.cover,
         isHighPriority: widget.isHighPriorityImage,
         placeholder: (context) => Container(
-          color: Colors.grey[300],
+          color: placeholderColor,
           child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
         ),
         errorWidget: (context, error) => Container(
-          color: Colors.grey[300],
-          child: const Center(
-            child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+          color: placeholderColor,
+          child: Center(
+            child: Icon(
+              Icons.broken_image,
+              size: 48,
+              color: placeholderIconColor,
+            ),
           ),
         ),
       );
@@ -196,7 +211,7 @@ class _VideoCardState extends State<VideoCard> {
       bgColor = AppColors.rank3;
     } else {
       rankText = '#${widget.rank}';
-      bgColor = isDark ? Colors.black54 : Colors.black38;
+      bgColor = isDark ? AppColors.overlayOnImageDark : Colors.black38;
     }
 
     return Container(
@@ -228,7 +243,7 @@ class _VideoCardState extends State<VideoCard> {
     );
   }
 
-  Widget _buildShareButton(BuildContext context, bool isWideCard) {
+  Widget _buildShareButton(BuildContext context, bool isWideCard, bool isDark) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -240,8 +255,13 @@ class _VideoCardState extends State<VideoCard> {
           width: isWideCard ? 34 : 32,
           height: isWideCard ? 34 : 32,
           decoration: BoxDecoration(
-            color: Colors.black54,
+            color: _overlayColor(isDark),
             shape: BoxShape.circle,
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.2),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -260,7 +280,11 @@ class _VideoCardState extends State<VideoCard> {
     );
   }
 
-  Widget _buildFavoriteButton(BuildContext context, bool isWideCard) {
+  Widget _buildFavoriteButton(
+    BuildContext context,
+    bool isWideCard,
+    bool isDark,
+  ) {
     return Consumer<FavoritesProvider>(
       builder: (context, favoritesProvider, _) {
         final isFavorited = favoritesProvider.isFavoritedSync(widget.item.bvid);
@@ -275,13 +299,11 @@ class _VideoCardState extends State<VideoCard> {
                 ownerName: widget.item.ownerName,
               );
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(isFavorited ? '已取消收藏' : '已添加到收藏'),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
+                if (isFavorited) {
+                  StatusFeedback.info(context, '已取消收藏');
+                } else {
+                  StatusFeedback.success(context, '已添加到收藏');
+                }
               }
             },
             borderRadius: BorderRadius.circular(20),
@@ -289,8 +311,13 @@ class _VideoCardState extends State<VideoCard> {
               width: isWideCard ? 30 : 28,
               height: isWideCard ? 30 : 28,
               decoration: BoxDecoration(
-                color: Colors.black54,
+                color: _overlayColor(isDark),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.2),
+                ),
               ),
               child: Icon(
                 isFavorited ? Icons.favorite : Icons.favorite_border,
@@ -304,15 +331,20 @@ class _VideoCardState extends State<VideoCard> {
     );
   }
 
-  Widget _buildScoreTag(bool isWideCard) {
+  Widget _buildScoreTag(bool isWideCard, bool isDark) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isWideCard ? 9 : 8,
         vertical: isWideCard ? 5 : 4,
       ),
       decoration: BoxDecoration(
-        color: Colors.black54,
+        color: _overlayColor(isDark),
         borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.white.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -330,6 +362,10 @@ class _VideoCardState extends State<VideoCard> {
         ],
       ),
     );
+  }
+
+  Color _overlayColor(bool isDark) {
+    return isDark ? AppColors.overlayOnImageDark : AppColors.overlayOnImageLight;
   }
 
   Widget _buildOwnerInfo(ThemeData theme, bool isWideCard) {

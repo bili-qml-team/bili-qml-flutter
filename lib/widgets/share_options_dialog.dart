@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme/colors.dart';
+import 'status_feedback.dart';
 
 /// 分享选项对话框
 class ShareOptionsDialog extends StatefulWidget {
@@ -17,8 +18,13 @@ class ShareOptionsDialog extends StatefulWidget {
     LeaderboardItem item, {
     int? rank,
   }) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     await showModalBottomSheet(
       context: context,
+      backgroundColor: isDark
+          ? AppColors.darkCardBackgroundElevated
+          : AppColors.lightCardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -36,6 +42,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final shareService = ShareService();
 
     return SafeArea(
@@ -44,6 +51,15 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
             // 标题
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -51,8 +67,8 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 children: [
                   Text(
                     '分享视频',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const Spacer(),
@@ -64,7 +80,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 ],
               ),
             ),
-            const Divider(height: 16),
+            Divider(height: 16, color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
 
             // 选项列表
             _buildOption(
@@ -77,7 +93,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 await shareService.copyBvid(widget.item.bvid);
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  _showSnackBar(context, '已复制 BV 号');
+                  StatusFeedback.success(context, '已复制 BV 号');
                 }
               },
             ),
@@ -91,7 +107,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 await shareService.copyVideoUrl(widget.item.bvid);
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  _showSnackBar(context, '已复制链接');
+                  StatusFeedback.success(context, '已复制链接');
                 }
               },
             ),
@@ -108,7 +124,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 );
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  _showSnackBar(context, '已复制完整信息');
+                  StatusFeedback.success(context, '已复制完整信息');
                 }
               },
             ),
@@ -132,11 +148,11 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                           );
                           if (context.mounted) {
                             Navigator.of(context).pop();
-                            _showSnackBar(context, '分享卡片已生成');
+                            StatusFeedback.success(context, '分享卡片已生成');
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            _showSnackBar(context, '生成失败: $e');
+                            StatusFeedback.error(context, '生成失败: $e');
                           }
                         } finally {
                           if (mounted) {
@@ -177,7 +193,12 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       leading: Container(
         width: 40,
         height: 40,
@@ -187,10 +208,16 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
         ),
         child: Icon(icon, color: iconColor, size: 20),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      title: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontSize: 12,
+          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+        ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -198,13 +225,4 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
     );
   }
 
-  void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 }

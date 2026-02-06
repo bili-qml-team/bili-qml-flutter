@@ -38,11 +38,14 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
     final isDark = theme.brightness == Brightness.dark;
     final isExpired = widget.reason == TokenGuideReason.expiredToken;
     final cardColor =
-        isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+        isDark
+            ? AppColors.darkCardBackgroundElevated
+            : AppColors.lightCardBackground;
     final primaryText =
         isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final secondaryText =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
     final steps = isExpired
         ? const [
             '1. 去 B 站任意视频页',
@@ -64,6 +67,9 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
@@ -80,7 +86,7 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
               isExpired ? '投票 Token 已失效' : '还差一步即可投票',
               style: TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 color: primaryText,
               ),
             ),
@@ -104,6 +110,8 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
                     ))
                 .toList()
               ..removeLast(),
+            const SizedBox(height: 8),
+            Divider(color: dividerColor),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -144,6 +152,8 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
                 TextButton(
                   onPressed: _onDismiss,
                   style: TextButton.styleFrom(
+                    foregroundColor: AppColors.biliBlue,
+                    textStyle: const TextStyle(fontWeight: FontWeight.w600),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 10,
@@ -170,6 +180,8 @@ class _TokenGuideDialogState extends State<TokenGuideDialog> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.biliBlue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 10,

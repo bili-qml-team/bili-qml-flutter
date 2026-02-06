@@ -18,32 +18,49 @@ class VoteFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unvotedBackground = isDark
+        ? AppColors.darkCardBackgroundElevated
+        : AppColors.lightCardBackground;
+    final unvotedForeground = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextSecondary;
+
     return FloatingActionButton.extended(
       onPressed: isLoading ? null : onPressed,
-      backgroundColor: isVoted ? AppColors.biliBlue : Colors.grey[600],
-      foregroundColor: Colors.white,
+      backgroundColor: isVoted ? AppColors.biliBlue : unvotedBackground,
+      foregroundColor: isVoted ? Colors.white : unvotedForeground,
       icon: isLoading
-          ? const SizedBox(
+          ? SizedBox(
               width: 24,
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(Colors.white),
+                valueColor: AlwaysStoppedAnimation(
+                  isVoted ? Colors.white : AppColors.biliBlue,
+                ),
               ),
             )
           : Text(
               '❓',
               style: TextStyle(
                 fontSize: 20,
-                color: isVoted ? Colors.white : Colors.white70,
+                color: isVoted ? Colors.white : unvotedForeground,
               ),
             ),
       label: Text(
         _formatCount(count),
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       ),
-      elevation: 4,
-      highlightElevation: 8,
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: isVoted
+              ? Colors.transparent
+              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        ),
+      ),
+      elevation: isVoted ? 6 : 3,
+      highlightElevation: isVoted ? 10 : 6,
     );
   }
 

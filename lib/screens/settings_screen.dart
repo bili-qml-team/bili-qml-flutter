@@ -252,9 +252,7 @@ class SettingsScreen extends StatelessWidget {
                   Navigator.of(dialogContext).pop();
                 }
               } else {
-                ScaffoldMessenger.of(
-                  dialogContext,
-                ).showSnackBar(const SnackBar(content: Text('请输入有效的数字 UID')));
+                StatusFeedback.warning(dialogContext, '请输入有效的数字 UID');
               }
             },
             child: const Text('保存'),

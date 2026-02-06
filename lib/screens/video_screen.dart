@@ -135,19 +135,25 @@ class _VideoScreenState extends State<VideoScreen> {
 
           if (retryResponse.success) {
             await _reloadStatus();
-            _showSnackBar(isVoting ? '投票成功 ❓' : '已取消投票');
+            _showSnackBar(
+              isVoting ? '投票成功 ❓' : '已取消投票',
+              tone: StatusTone.success,
+            );
           } else {
-            _showSnackBar('操作失败: ${retryResponse.error}');
+            _showSnackBar('操作失败: ${retryResponse.error}', tone: StatusTone.error);
           }
         }
       } else if (response.success) {
         await _reloadStatus();
-        _showSnackBar(isVoting ? '投票成功 ❓' : '已取消投票');
+        _showSnackBar(
+          isVoting ? '投票成功 ❓' : '已取消投票',
+          tone: StatusTone.success,
+        );
       } else {
-        _showSnackBar('操作失败: ${response.error}');
+        _showSnackBar('操作失败: ${response.error}', tone: StatusTone.error);
       }
     } catch (e) {
-      _showSnackBar('网络错误: $e');
+      _showSnackBar('网络错误: $e', tone: StatusTone.error);
     } finally {
       if (mounted) {
         setState(() => _isVoting = false);
@@ -230,14 +236,8 @@ class _VideoScreenState extends State<VideoScreen> {
     ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  void _showSnackBar(String message, {StatusTone tone = StatusTone.info}) {
+    StatusFeedback.show(context, message, tone: tone);
   }
 
   Future<void> _openInBrowser() async {
@@ -300,7 +300,10 @@ class _VideoScreenState extends State<VideoScreen> {
                     ownerName: _videoInfo?.ownerName,
                   );
                   if (mounted) {
-                    _showSnackBar(isFavorited ? '已取消收藏' : '已添加到收藏');
+                    _showSnackBar(
+                      isFavorited ? '已取消收藏' : '已添加到收藏',
+                      tone: isFavorited ? StatusTone.info : StatusTone.success,
+                    );
                   }
                 },
                 tooltip: isFavorited ? '取消收藏' : '收藏',
