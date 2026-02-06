@@ -248,9 +248,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         ? AppColors.darkTextSecondary.withValues(alpha: 0.7)
         : AppColors.lightTextSecondary.withValues(alpha: 0.7);
 
-    return Card(
-      margin: isGridMode ? EdgeInsets.zero : const EdgeInsets.only(bottom: 8),
-      child: InkWell(
+    return RepaintBoundary(
+      child: Card(
+        margin: isGridMode ? EdgeInsets.zero : const EdgeInsets.only(bottom: 8),
+        child: InkWell(
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => VideoScreen(bvid: item.bvid)),
@@ -329,6 +330,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

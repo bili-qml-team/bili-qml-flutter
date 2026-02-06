@@ -126,7 +126,12 @@ class _WebImageState extends State<_WebImage> {
       children: [
         if (!_isLoaded && widget.placeholder != null)
           widget.placeholder!(context),
-        HtmlElementView(viewType: _viewType),
+        AnimatedOpacity(
+          opacity: _isLoaded ? 1 : 0,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          child: HtmlElementView(viewType: _viewType),
+        ),
       ],
     );
   }

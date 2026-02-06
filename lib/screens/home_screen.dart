@@ -49,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ScrollController _scrollController = ScrollController();
   StreamSubscription? _intentSub;
+  final Set<String> _animatedGridItems = <String>{};
 
   /// 上次触发加载的时间，用于节流
   int _lastLoadTriggerTime = 0;
@@ -452,7 +453,9 @@ class _HomeScreenState extends State<HomeScreen> {
     LeaderboardProvider provider,
     List<LeaderboardItem> items,
   ) {
-    final settingsProvider = context.watch<SettingsProvider>();
+    final isRank1Custom = context.select<SettingsProvider, bool>(
+      (settings) => settings.isRank1Custom,
+    );
 
     return RefreshIndicator(
       onRefresh: () => provider.refresh(),
@@ -471,9 +474,11 @@ class _HomeScreenState extends State<HomeScreen> {
             minCount: 2,
             maxCount: 7,
           );
+          final rangeKey = provider.currentRange.value;
           final gridSpacing = isDesktop ? 16.0 : 12.0;
           final childAspectRatio = isDesktop ? 0.82 : 0.75;
           final highPriorityCount = crossAxisCount * 2;
+          final animatedCount = (crossAxisCount * 4).clamp(8, 24).toInt();
 
           return NotificationListener<ScrollNotification>(
             onNotification: _handleScrollNotification,
@@ -497,16 +502,51 @@ class _HomeScreenState extends State<HomeScreen> {
                       final item = items[index];
                       // 排名就是 index + 1（无限滚动模式）
                       final actualRank = index + 1;
-                      return RepaintBoundary(
+                      final card = RepaintBoundary(
                         child: VideoCard(
                           item: item,
                           rank: actualRank,
-                          isRank1Custom: settingsProvider.isRank1Custom,
+                          isRank1Custom: isRank1Custom,
                           isHighPriorityImage: index < highPriorityCount,
                           onTap: () => _openVideo(context, item.bvid, item.title),
                         ),
                       );
-                    }, childCount: items.length),
+
+                      if (index >= animatedCount) {
+                        return card;
+                      }
+
+                      if (_animatedGridItems.length > 320) {
+                        _animatedGridItems.clear();
+                      }
+
+                      final animateKey = '$rangeKey:${item.bvid}';
+                      final shouldAnimate = _animatedGridItems.add(animateKey);
+                      if (!shouldAnimate) {
+                        return card;
+                      }
+
+                      final stagger = (index % crossAxisCount) * 28;
+                      return TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: Duration(milliseconds: 220 + stagger),
+                        curve: Curves.easeOutCubic,
+                        child: card,
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, (1 - value) * 14),
+                              child: child,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                      childCount: items.length,
+                      addAutomaticKeepAlives: false,
+                      addRepaintBoundaries: false,
+                    ),
                   ),
                 ),
                 // 加载更多指示器
