@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
@@ -20,10 +21,16 @@ class VideoScreen extends StatefulWidget {
   State<VideoScreen> createState() => _VideoScreenState();
 }
 
+enum _CopyTarget { bvid, ownerUid }
+
 class _VideoScreenState extends State<VideoScreen> {
   bool _isVoting = false;
   UserStatus? _status;
   VideoInfo? _videoInfo;
+  bool _copiedBvid = false;
+  bool _copiedOwnerUid = false;
+  int _copiedBvidVersion = 0;
+  int _copiedOwnerUidVersion = 0;
 
   @override
   void initState() {
@@ -544,19 +551,55 @@ class _VideoScreenState extends State<VideoScreen> {
               style: theme.textTheme.bodySmall,
             )
           else
-            Wrap(
-              spacing: isWide ? 16 : 12,
-              runSpacing: 10,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailItem('BV号', info.bvid, isWide),
-                _buildDetailItem('UP主', info.ownerName, isWide),
-                _buildDetailItem('UP主UID', info.ownerMid.toString(), isWide),
-                _buildDetailItem('播放', _formatCount(info.view), isWide),
-                _buildDetailItem('弹幕', _formatCount(info.danmaku), isWide),
-                _buildDetailItem('点赞', _formatCount(info.like), isWide),
-                _buildDetailItem('投币', _formatCount(info.coin), isWide),
-                _buildDetailItem('收藏', _formatCount(info.favorite), isWide),
-                _buildDetailItem('分享', _formatCount(info.share), isWide),
+                Wrap(
+                  spacing: isWide ? 16 : 12,
+                  runSpacing: 10,
+                  children: [
+                    _buildDetailItem('BV号', info.bvid, isWide),
+                    _buildDetailItem('UP主', info.ownerName, isWide),
+                    _buildDetailItem('UP主UID', info.ownerMid.toString(), isWide),
+                    _buildDetailItem('播放', _formatCount(info.view), isWide),
+                    _buildDetailItem('弹幕', _formatCount(info.danmaku), isWide),
+                    _buildDetailItem('点赞', _formatCount(info.like), isWide),
+                    _buildDetailItem('投币', _formatCount(info.coin), isWide),
+                    _buildDetailItem('收藏', _formatCount(info.favorite), isWide),
+                    _buildDetailItem('分享', _formatCount(info.share), isWide),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ActionChip(
+                      avatar: Icon(
+                        _copiedBvid ? Icons.check : Icons.copy,
+                        size: 16,
+                      ),
+                      label: Text(_copiedBvid ? 'BV号已复制' : '复制 BV号'),
+                      onPressed: () => _copyDetailValue(
+                        info.bvid,
+                        'BV号',
+                        target: _CopyTarget.bvid,
+                      ),
+                    ),
+                    ActionChip(
+                      avatar: Icon(
+                        _copiedOwnerUid ? Icons.check : Icons.copy,
+                        size: 16,
+                      ),
+                      label: Text(_copiedOwnerUid ? 'UP主UID已复制' : '复制 UP主UID'),
+                      onPressed: () => _copyDetailValue(
+                        info.ownerMid.toString(),
+                        'UP主UID',
+                        target: _CopyTarget.ownerUid,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
         ],
@@ -596,6 +639,43 @@ class _VideoScreenState extends State<VideoScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _copyDetailValue(
+    String value,
+    String label, {
+    required _CopyTarget target,
+  }) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: value));
+      if (!mounted) return;
+      _showCopiedState(target);
+      _showSnackBar('$label已复制', tone: StatusTone.success);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar('复制失败，请重试', tone: StatusTone.error);
+    }
+  }
+
+  void _showCopiedState(_CopyTarget target) {
+    switch (target) {
+      case _CopyTarget.bvid:
+        final currentVersion = ++_copiedBvidVersion;
+        setState(() => _copiedBvid = true);
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted || currentVersion != _copiedBvidVersion) return;
+          setState(() => _copiedBvid = false);
+        });
+        break;
+      case _CopyTarget.ownerUid:
+        final currentVersion = ++_copiedOwnerUidVersion;
+        setState(() => _copiedOwnerUid = true);
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted || currentVersion != _copiedOwnerUidVersion) return;
+          setState(() => _copiedOwnerUid = false);
+        });
+        break;
+    }
   }
 
   String _formatCount(int count) {
