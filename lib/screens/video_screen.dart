@@ -255,6 +255,8 @@ class _VideoScreenState extends State<VideoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.sizeOf(context).width >= 1080;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -332,6 +334,9 @@ class _VideoScreenState extends State<VideoScreen> {
               onPressed: _handleVote,
             )
           : null,
+      floatingActionButtonLocation: isWideScreen
+          ? FloatingActionButtonLocation.centerFloat
+          : FloatingActionButtonLocation.endFloat,
     );
   }
 
