@@ -64,43 +64,59 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       body: Consumer<HistoryProvider>(
         builder: (context, provider, _) {
+          late final Widget stateChild;
+
           // 加载中
           if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          // 空状态
-          if (provider.history.isEmpty) {
-            return _buildEmptyState(isDark);
-          }
-
-          // 历史记录列表（按日期分组）
-          final grouped = provider.getGroupedByDate();
-          return RefreshIndicator(
-            onRefresh: () => provider.loadHistory(),
-            child: ResponsivePageContainer(
-              maxWidth: 1680,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final contentWidth = constraints.maxWidth;
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    itemCount: grouped.length,
-                    itemBuilder: (context, index) {
-                      final dateKey = grouped.keys.elementAt(index);
-                      final items = grouped[dateKey]!;
-                      return _buildDateGroup(
-                        context,
-                        dateKey,
-                        items,
-                        isDark,
-                        contentWidth,
+            stateChild = const Center(
+              key: ValueKey('history_loading'),
+              child: CircularProgressIndicator(),
+            );
+          } else if (provider.history.isEmpty) {
+            // 空状态
+            stateChild = KeyedSubtree(
+              key: const ValueKey('history_empty'),
+              child: _buildEmptyState(isDark),
+            );
+          } else {
+            // 历史记录列表（按日期分组）
+            final grouped = provider.getGroupedByDate();
+            stateChild = KeyedSubtree(
+              key: ValueKey('history_content_${provider.history.length}_${provider.hasActiveFilters}'),
+              child: RefreshIndicator(
+                onRefresh: () => provider.loadHistory(),
+                child: ResponsivePageContainer(
+                  maxWidth: 1680,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final contentWidth = constraints.maxWidth;
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        itemCount: grouped.length,
+                        itemBuilder: (context, index) {
+                          final dateKey = grouped.keys.elementAt(index);
+                          final items = grouped[dateKey]!;
+                          return _buildDateGroup(
+                            context,
+                            dateKey,
+                            items,
+                            isDark,
+                            contentWidth,
+                          );
+                        },
                       );
                     },
-                  );
-                },
+                  ),
+                ),
               ),
-            ),
+            );
+          }
+
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: stateChild,
           );
         },
       ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
@@ -29,6 +30,19 @@ class VideoCard extends StatefulWidget {
 }
 
 class _VideoCardState extends State<VideoCard> {
+  BoxShadow _softShadow({
+    required double blur,
+    required Offset offset,
+    required double alpha,
+  }) {
+    final scale = kIsWeb ? 0.7 : 1.0;
+    return BoxShadow(
+      color: Colors.black.withValues(alpha: alpha * scale),
+      blurRadius: blur * scale,
+      offset: Offset(offset.dx * scale, offset.dy * scale),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -223,10 +237,10 @@ class _VideoCardState extends State<VideoCard> {
         color: bgColor,
         borderRadius: BorderRadius.circular(isWideCard ? 5 : 4),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 4,
+          _softShadow(
+            blur: 4,
             offset: const Offset(0, 2),
+            alpha: 0.2,
           ),
         ],
       ),
@@ -263,10 +277,10 @@ class _VideoCardState extends State<VideoCard> {
                   : Colors.white.withValues(alpha: 0.2),
             ),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 4,
+              _softShadow(
+                blur: 4,
                 offset: const Offset(0, 2),
+                alpha: 0.2,
               ),
             ],
           ),

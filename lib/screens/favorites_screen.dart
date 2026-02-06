@@ -64,43 +64,59 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       ),
       body: Consumer<FavoritesProvider>(
         builder: (context, provider, _) {
+          late final Widget stateChild;
+
           // 加载中
           if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          // 空状态
-          if (provider.favorites.isEmpty) {
-            return _buildEmptyState(isDark);
-          }
-
-          // 收藏列表（按日期分组）
-          final grouped = provider.getGroupedByDate();
-          return RefreshIndicator(
-            onRefresh: () => provider.loadFavorites(),
-            child: ResponsivePageContainer(
-              maxWidth: 1680,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final contentWidth = constraints.maxWidth;
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    itemCount: grouped.length,
-                    itemBuilder: (context, index) {
-                      final dateKey = grouped.keys.elementAt(index);
-                      final items = grouped[dateKey]!;
-                      return _buildDateGroup(
-                        context,
-                        dateKey,
-                        items,
-                        isDark,
-                        contentWidth,
+            stateChild = const Center(
+              key: ValueKey('favorites_loading'),
+              child: CircularProgressIndicator(),
+            );
+          } else if (provider.favorites.isEmpty) {
+            // 空状态
+            stateChild = KeyedSubtree(
+              key: const ValueKey('favorites_empty'),
+              child: _buildEmptyState(isDark),
+            );
+          } else {
+            // 收藏列表（按日期分组）
+            final grouped = provider.getGroupedByDate();
+            stateChild = KeyedSubtree(
+              key: ValueKey('favorites_content_${provider.favorites.length}_${provider.hasActiveFilters}'),
+              child: RefreshIndicator(
+                onRefresh: () => provider.loadFavorites(),
+                child: ResponsivePageContainer(
+                  maxWidth: 1680,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final contentWidth = constraints.maxWidth;
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        itemCount: grouped.length,
+                        itemBuilder: (context, index) {
+                          final dateKey = grouped.keys.elementAt(index);
+                          final items = grouped[dateKey]!;
+                          return _buildDateGroup(
+                            context,
+                            dateKey,
+                            items,
+                            isDark,
+                            contentWidth,
+                          );
+                        },
                       );
                     },
-                  );
-                },
+                  ),
+                ),
               ),
-            ),
+            );
+          }
+
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: stateChild,
           );
         },
       ),

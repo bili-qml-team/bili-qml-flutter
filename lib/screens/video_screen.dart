@@ -545,63 +545,79 @@ class _VideoScreenState extends State<VideoScreen> {
             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
-          if (info == null)
-            Text(
-              '详细信息加载中...',
-              style: theme.textTheme.bodySmall,
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: isWide ? 16 : 12,
-                  runSpacing: 10,
-                  children: [
-                    _buildDetailItem('BV号', info.bvid, isWide),
-                    _buildDetailItem('UP主', info.ownerName, isWide),
-                    _buildDetailItem('UP主UID', info.ownerMid.toString(), isWide),
-                    _buildDetailItem('播放', _formatCount(info.view), isWide),
-                    _buildDetailItem('弹幕', _formatCount(info.danmaku), isWide),
-                    _buildDetailItem('点赞', _formatCount(info.like), isWide),
-                    _buildDetailItem('投币', _formatCount(info.coin), isWide),
-                    _buildDetailItem('收藏', _formatCount(info.favorite), isWide),
-                    _buildDetailItem('分享', _formatCount(info.share), isWide),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ActionChip(
-                      avatar: Icon(
-                        _copiedBvid ? Icons.check : Icons.copy,
-                        size: 16,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: info == null
+                ? Text(
+                    '详细信息加载中...',
+                    key: const ValueKey('video_detail_loading'),
+                    style: theme.textTheme.bodySmall,
+                  )
+                : Column(
+                    key: const ValueKey('video_detail_content'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: isWide ? 16 : 12,
+                        runSpacing: 10,
+                        children: [
+                          _buildDetailItem('BV号', info.bvid, isWide),
+                          _buildDetailItem('UP主', info.ownerName, isWide),
+                          _buildDetailItem(
+                            'UP主UID',
+                            info.ownerMid.toString(),
+                            isWide,
+                          ),
+                          _buildDetailItem('播放', _formatCount(info.view), isWide),
+                          _buildDetailItem(
+                            '弹幕',
+                            _formatCount(info.danmaku),
+                            isWide,
+                          ),
+                          _buildDetailItem('点赞', _formatCount(info.like), isWide),
+                          _buildDetailItem('投币', _formatCount(info.coin), isWide),
+                          _buildDetailItem('收藏', _formatCount(info.favorite), isWide),
+                          _buildDetailItem('分享', _formatCount(info.share), isWide),
+                        ],
                       ),
-                      label: Text(_copiedBvid ? 'BV号已复制' : '复制 BV号'),
-                      onPressed: () => _copyDetailValue(
-                        info.bvid,
-                        'BV号',
-                        target: _CopyTarget.bvid,
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ActionChip(
+                            avatar: Icon(
+                              _copiedBvid ? Icons.check : Icons.copy,
+                              size: 16,
+                            ),
+                            label: Text(_copiedBvid ? 'BV号已复制' : '复制 BV号'),
+                            onPressed: () => _copyDetailValue(
+                              info.bvid,
+                              'BV号',
+                              target: _CopyTarget.bvid,
+                            ),
+                          ),
+                          ActionChip(
+                            avatar: Icon(
+                              _copiedOwnerUid ? Icons.check : Icons.copy,
+                              size: 16,
+                            ),
+                            label: Text(
+                              _copiedOwnerUid ? 'UP主UID已复制' : '复制 UP主UID',
+                            ),
+                            onPressed: () => _copyDetailValue(
+                              info.ownerMid.toString(),
+                              'UP主UID',
+                              target: _CopyTarget.ownerUid,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    ActionChip(
-                      avatar: Icon(
-                        _copiedOwnerUid ? Icons.check : Icons.copy,
-                        size: 16,
-                      ),
-                      label: Text(_copiedOwnerUid ? 'UP主UID已复制' : '复制 UP主UID'),
-                      onPressed: () => _copyDetailValue(
-                        info.ownerMid.toString(),
-                        'UP主UID',
-                        target: _CopyTarget.ownerUid,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                    ],
+                  ),
+          ),
         ],
       ),
     );

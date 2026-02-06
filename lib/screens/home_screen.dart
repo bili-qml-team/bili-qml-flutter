@@ -341,8 +341,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Consumer<LeaderboardProvider>(
       builder: (context, provider, _) {
         final items = provider.items;
+        late final Widget stateChild;
+
         if (provider.isLoading && items.isEmpty) {
-          return const Center(
+          stateChild = const Center(
+            key: ValueKey('leaderboard_loading'),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -352,18 +355,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           );
-        }
-
-        if (provider.requiresCaptcha) {
-          return _buildCaptchaRequired(context, provider);
-        }
-
-        if (provider.error != null && items.isEmpty) {
-          return _buildError(context, provider);
-        }
-
-        if (items.isEmpty) {
-          return const Center(
+        } else if (provider.requiresCaptcha) {
+          stateChild = KeyedSubtree(
+            key: const ValueKey('leaderboard_captcha'),
+            child: _buildCaptchaRequired(context, provider),
+          );
+        } else if (provider.error != null && items.isEmpty) {
+          stateChild = KeyedSubtree(
+            key: const ValueKey('leaderboard_error'),
+            child: _buildError(context, provider),
+          );
+        } else if (items.isEmpty) {
+          stateChild = const Center(
+            key: ValueKey('leaderboard_empty'),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -373,9 +377,23 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           );
+        } else {
+          stateChild = KeyedSubtree(
+            key: ValueKey('leaderboard_content_${items.length}_${provider.currentRange.value}'),
+            child: _buildGrid(context, provider, items),
+          );
         }
 
-        return _buildGrid(context, provider, items);
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 240),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+          child: stateChild,
+        );
       },
     );
   }
@@ -479,12 +497,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       final item = items[index];
                       // 排名就是 index + 1（无限滚动模式）
                       final actualRank = index + 1;
-                      return VideoCard(
-                        item: item,
-                        rank: actualRank,
-                        isRank1Custom: settingsProvider.isRank1Custom,
-                        isHighPriorityImage: index < highPriorityCount,
-                        onTap: () => _openVideo(context, item.bvid, item.title),
+                      return RepaintBoundary(
+                        child: VideoCard(
+                          item: item,
+                          rank: actualRank,
+                          isRank1Custom: settingsProvider.isRank1Custom,
+                          isHighPriorityImage: index < highPriorityCount,
+                          onTap: () => _openVideo(context, item.bvid, item.title),
+                        ),
                       );
                     }, childCount: items.length),
                   ),
