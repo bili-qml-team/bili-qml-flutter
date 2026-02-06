@@ -249,88 +249,90 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         : AppColors.lightTextSecondary.withValues(alpha: 0.7);
 
     return RepaintBoundary(
-      child: Card(
-        margin: isGridMode ? EdgeInsets.zero : const EdgeInsets.only(bottom: 8),
-        child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => VideoScreen(bvid: item.bvid)),
-          );
-        },
-        child: Padding(
-          padding: cardPadding,
-          child: Row(
-            children: [
-              // 封面图
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: SizedBox(
-                  width: thumbWidth,
-                  height: thumbHeight,
-                  child: item.picUrl != null && item.picUrl!.isNotEmpty
-                      ? BiliNetworkImage(
-                          imageUrl: item.picUrl!,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, error) =>
-                              _buildPlaceholder(isDark),
-                        )
-                      : _buildPlaceholder(isDark),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 视频信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 标题
-                    Text(
-                      item.title ?? item.bvid,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: isGridMode ? 14.5 : 14,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
+      child: WebHoverLift(
+        child: Card(
+          margin: isGridMode ? EdgeInsets.zero : const EdgeInsets.only(bottom: 8),
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => VideoScreen(bvid: item.bvid)),
+              );
+            },
+            child: Padding(
+              padding: cardPadding,
+              child: Row(
+                children: [
+                  // 封面图
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: SizedBox(
+                      width: thumbWidth,
+                      height: thumbHeight,
+                      child: item.picUrl != null && item.picUrl!.isNotEmpty
+                          ? BiliNetworkImage(
+                              imageUrl: item.picUrl!,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, error) =>
+                                  _buildPlaceholder(isDark),
+                            )
+                          : _buildPlaceholder(isDark),
                     ),
-                    SizedBox(height: isGridMode ? 6 : 4),
-                    // UP主
-                    if (item.ownerName != null && item.ownerName!.isNotEmpty)
-                      Text(
-                        item.ownerName!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: isGridMode ? 12.5 : 12,
-                          color: secondaryColor,
+                  ),
+                  const SizedBox(width: 12),
+                  // 视频信息
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 标题
+                        Text(
+                          item.title ?? item.bvid,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: isGridMode ? 14.5 : 14,
+                            fontWeight: FontWeight.w600,
+                            height: 1.3,
+                          ),
                         ),
-                      ),
-                    if (item.ownerName != null && item.ownerName!.isNotEmpty)
-                      const SizedBox(height: 2),
-                    // 收藏时间
-                    Text(
-                      _formatSavedTime(item.savedAt),
-                      style: TextStyle(
-                        fontSize: isGridMode ? 11.5 : 11,
-                        color: tertiaryColor,
-                        height: 1.2,
-                      ),
+                        SizedBox(height: isGridMode ? 6 : 4),
+                        // UP主
+                        if (item.ownerName != null && item.ownerName!.isNotEmpty)
+                          Text(
+                            item.ownerName!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: isGridMode ? 12.5 : 12,
+                              color: secondaryColor,
+                            ),
+                          ),
+                        if (item.ownerName != null && item.ownerName!.isNotEmpty)
+                          const SizedBox(height: 2),
+                        // 收藏时间
+                        Text(
+                          _formatSavedTime(item.savedAt),
+                          style: TextStyle(
+                            fontSize: isGridMode ? 11.5 : 11,
+                            color: tertiaryColor,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  // 删除按钮
+                  IconButton(
+                    icon: Icon(Icons.close, size: isGridMode ? 18 : 20),
+                    onPressed: () => _showRemoveDialog(context, item),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: '移除',
+                  ),
+                ],
               ),
-              // 删除按钮
-              IconButton(
-                icon: Icon(Icons.close, size: isGridMode ? 18 : 20),
-                onPressed: () => _showRemoveDialog(context, item),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                tooltip: '移除',
-              ),
-            ],
+            ),
           ),
-        ),
         ),
       ),
     );
