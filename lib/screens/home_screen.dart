@@ -421,17 +421,20 @@ class _HomeScreenState extends State<HomeScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
+          final isDesktop = width >= ResponsiveBreakpoints.desktop;
           final minTileWidth = width >= ResponsiveBreakpoints.desktop
-              ? 270.0
+              ? 300.0
               : width >= ResponsiveBreakpoints.tablet
-              ? 230.0
-              : 170.0;
+              ? 240.0
+              : 175.0;
           final crossAxisCount = ResponsiveBreakpoints.adaptiveColumnCount(
             width,
             minTileWidth: minTileWidth,
             minCount: 2,
-            maxCount: 8,
+            maxCount: 7,
           );
+          final gridSpacing = isDesktop ? 16.0 : 12.0;
+          final childAspectRatio = isDesktop ? 0.82 : 0.75;
           final highPriorityCount = crossAxisCount * 2;
 
           return NotificationListener<ScrollNotification>(
@@ -441,13 +444,16 @@ class _HomeScreenState extends State<HomeScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: gridSpacing,
+                    vertical: 16,
+                  ),
                   sliver: SliverGrid(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.75,
+                      crossAxisSpacing: gridSpacing,
+                      mainAxisSpacing: gridSpacing,
+                      childAspectRatio: childAspectRatio,
                     ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final item = items[index];

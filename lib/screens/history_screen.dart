@@ -152,10 +152,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     double contentWidth,
   ) {
     final useGrid = contentWidth >= ResponsiveBreakpoints.desktop;
-    final spacing = 12.0;
+    final spacing = useGrid ? 16.0 : 12.0;
     final crossAxisCount = ResponsiveBreakpoints.adaptiveColumnCount(
       contentWidth,
-      minTileWidth: 420,
+      minTileWidth: 380,
       minCount: 2,
       maxCount: 4,
     );
@@ -183,18 +183,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (useGrid)
           Wrap(
             spacing: spacing,
-            runSpacing: 8,
+            runSpacing: 12,
             children: items
                 .map(
                   (item) => SizedBox(
                     width: cardWidth,
-                    child: _buildHistoryCard(context, item, isDark),
+                    child: _buildHistoryCard(
+                      context,
+                      item,
+                      isDark,
+                      isGridMode: true,
+                    ),
                   ),
                 )
                 .toList(),
           )
         else
-          ...items.map((item) => _buildHistoryCard(context, item, isDark)),
+          ...items.map(
+            (item) => _buildHistoryCard(
+              context,
+              item,
+              isDark,
+              isGridMode: false,
+            ),
+          ),
         const SizedBox(height: 16),
       ],
     );
@@ -204,9 +216,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     BuildContext context,
     HistoryItem item,
     bool isDark,
+    {
+      required bool isGridMode,
+    }
   ) {
+    final thumbWidth = isGridMode ? 136.0 : 120.0;
+    final thumbHeight = thumbWidth * 0.625;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: isGridMode ? EdgeInsets.zero : const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () {
           Navigator.of(context).push(
@@ -221,8 +239,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: SizedBox(
-                  width: 120,
-                  height: 75,
+                  width: thumbWidth,
+                  height: thumbHeight,
                   child: item.picUrl != null && item.picUrl!.isNotEmpty
                       ? BiliNetworkImage(
                           imageUrl: item.picUrl!,

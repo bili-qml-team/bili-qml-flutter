@@ -329,7 +329,7 @@ class _VideoScreenState extends State<VideoScreen> {
   Widget _buildBody() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 1000;
+        final isWide = constraints.maxWidth >= 1080;
 
         return ResponsivePageContainer(
           maxWidth: isWide ? 1400 : null,
@@ -339,11 +339,12 @@ class _VideoScreenState extends State<VideoScreen> {
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 5, child: _buildVideoCover()),
-                      const SizedBox(width: 24),
+                      Expanded(flex: 5, child: _buildVideoCover(isWide: true)),
+                      const SizedBox(width: 32),
                       Expanded(
                         flex: 6,
                         child: _buildVideoInfo(
+                          isWide: true,
                           textAlign: TextAlign.left,
                           crossAxisAlignment: CrossAxisAlignment.start,
                         ),
@@ -352,9 +353,10 @@ class _VideoScreenState extends State<VideoScreen> {
                   )
                 : Column(
                     children: [
-                      _buildVideoCover(),
+                      _buildVideoCover(isWide: false),
                       const SizedBox(height: 24),
                       _buildVideoInfo(
+                        isWide: false,
                         textAlign: TextAlign.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                       ),
@@ -366,16 +368,36 @@ class _VideoScreenState extends State<VideoScreen> {
     );
   }
 
-  Widget _buildVideoCover() {
+  Widget _buildVideoCover({required bool isWide}) {
     if (_videoInfo == null) {
+      if (!isWide) {
+        return Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: AppColors.biliBlue.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Center(child: Text('📺', style: TextStyle(fontSize: 40))),
+        );
+      }
+
       return Container(
-        width: 80,
-        height: 80,
+        constraints: const BoxConstraints(maxWidth: 640),
         decoration: BoxDecoration(
           color: AppColors.biliBlue.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Center(child: Text('📺', style: TextStyle(fontSize: 40))),
+        child: const AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Center(
+            child: SizedBox(
+              width: 64,
+              height: 64,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+          ),
+        ),
       );
     }
 
@@ -411,6 +433,7 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   Widget _buildVideoInfo({
+    required bool isWide,
     required TextAlign textAlign,
     required CrossAxisAlignment crossAxisAlignment,
   }) {
@@ -444,9 +467,25 @@ class _VideoScreenState extends State<VideoScreen> {
           ),
           const SizedBox(height: 24),
         ] else
-          const Padding(
-            padding: EdgeInsets.only(bottom: 24),
-            child: CircularProgressIndicator(),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: isWide
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 3),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '正在加载视频状态...',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  )
+                : const CircularProgressIndicator(),
           ),
         ElevatedButton.icon(
           onPressed: _openInBrowser,
