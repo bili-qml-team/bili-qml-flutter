@@ -235,23 +235,26 @@ class _HomeScreenState extends State<HomeScreen> {
         onSettingsTap: () => _openSettings(context),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 顶部区域
-            _buildHeader(context, isDark),
-            // 时间范围选项卡
-            Consumer<LeaderboardProvider>(
-              builder: (context, provider, _) {
-                return LeaderboardTabs(
-                  currentRange: provider.currentRange,
-                  onRangeChanged: (range) => provider.setRange(range),
-                  onSearchPressed: () => SearchBottomSheet.show(context),
-                );
-              },
-            ),
-            // 排行榜列表
-            Expanded(child: _buildLeaderboardContent()),
-          ],
+        child: ResponsivePageContainer(
+          maxWidth: 1680,
+          child: Column(
+            children: [
+              // 顶部区域
+              _buildHeader(context, isDark),
+              // 时间范围选项卡
+              Consumer<LeaderboardProvider>(
+                builder: (context, provider, _) {
+                  return LeaderboardTabs(
+                    currentRange: provider.currentRange,
+                    onRangeChanged: (range) => provider.setRange(range),
+                    onSearchPressed: () => SearchBottomSheet.show(context),
+                  );
+                },
+              ),
+              // 排行榜列表
+              Expanded(child: _buildLeaderboardContent()),
+            ],
+          ),
         ),
       ),
     );
@@ -417,15 +420,18 @@ class _HomeScreenState extends State<HomeScreen> {
       onRefresh: () => provider.refresh(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // 根据屏幕宽度计算列数
-          int crossAxisCount = 2;
-          if (constraints.maxWidth > 1200) {
-            crossAxisCount = 5;
-          } else if (constraints.maxWidth > 900) {
-            crossAxisCount = 4;
-          } else if (constraints.maxWidth > 600) {
-            crossAxisCount = 3;
-          }
+          final width = constraints.maxWidth;
+          final minTileWidth = width >= ResponsiveBreakpoints.desktop
+              ? 270.0
+              : width >= ResponsiveBreakpoints.tablet
+              ? 230.0
+              : 170.0;
+          final crossAxisCount = ResponsiveBreakpoints.adaptiveColumnCount(
+            width,
+            minTileWidth: minTileWidth,
+            minCount: 2,
+            maxCount: 8,
+          );
           final highPriorityCount = crossAxisCount * 2;
 
           return NotificationListener<ScrollNotification>(

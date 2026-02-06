@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../config/constants.dart';
 import '../providers/providers.dart';
 import '../theme/colors.dart';
+import '../widgets/widgets.dart';
 
 /// 设置页面
 class SettingsScreen extends StatelessWidget {
@@ -14,88 +15,110 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('设置')),
       body: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // 用户设置
-              _buildSection(
-                context,
-                title: '用户设置',
-                children: [
-                  _buildUserIdTile(context, settings),
-                  const SizedBox(height: 8),
-                  _buildVoteTokenTile(context, settings),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 第一名显示设置
-              _buildSection(
-                context,
-                title: '第一名显示设置',
-                description: '自定义排行榜第一名的显示文本',
-                children: [
-                  RadioGroup<String>(
-                    groupValue: settings.rank1Setting,
-                    onChanged: (v) => settings.setRank1Setting(v!),
-                    child: Column(
-                      children: [
-                        _buildRadioTile<String>(
-                          context,
-                          title: '正常 (1)',
-                          value: 'default',
-                        ),
-                        _buildRadioTile<String>(
-                          context,
-                          title: '抽象 (何一位)',
-                          value: 'custom',
-                        ),
-                      ],
-                    ),
+          final sections = <Widget>[
+            _buildSection(
+              context,
+              title: '用户设置',
+              children: [
+                _buildUserIdTile(context, settings),
+                const SizedBox(height: 8),
+                _buildVoteTokenTile(context, settings),
+              ],
+            ),
+            _buildSection(
+              context,
+              title: '第一名显示设置',
+              description: '自定义排行榜第一名的显示文本',
+              children: [
+                RadioGroup<String>(
+                  groupValue: settings.rank1Setting,
+                  onChanged: (v) => settings.setRank1Setting(v!),
+                  child: Column(
+                    children: [
+                      _buildRadioTile<String>(
+                        context,
+                        title: '正常 (1)',
+                        value: 'default',
+                      ),
+                      _buildRadioTile<String>(
+                        context,
+                        title: '抽象 (何一位)',
+                        value: 'custom',
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                ),
+              ],
+            ),
+            _buildSection(
+              context,
+              title: '主题色设置',
+              children: [
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, _) {
+                    return RadioGroup<ThemeMode>(
+                      groupValue: themeProvider.themeMode,
+                      onChanged: (v) => themeProvider.setThemeMode(v!),
+                      child: Column(
+                        children: [
+                          _buildRadioTile<ThemeMode>(
+                            context,
+                            title: '跟随系统',
+                            value: ThemeMode.system,
+                          ),
+                          _buildRadioTile<ThemeMode>(
+                            context,
+                            title: '浅色模式',
+                            value: ThemeMode.light,
+                          ),
+                          _buildRadioTile<ThemeMode>(
+                            context,
+                            title: '深色模式',
+                            value: ThemeMode.dark,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            _buildAdvancedSection(context, settings),
+          ];
 
-              // 主题设置
-              _buildSection(
-                context,
-                title: '主题色设置',
-                children: [
-                  Consumer<ThemeProvider>(
-                    builder: (context, themeProvider, _) {
-                      return RadioGroup<ThemeMode>(
-                        groupValue: themeProvider.themeMode,
-                        onChanged: (v) => themeProvider.setThemeMode(v!),
-                        child: Column(
-                          children: [
-                            _buildRadioTile<ThemeMode>(
-                              context,
-                              title: '跟随系统',
-                              value: ThemeMode.system,
-                            ),
-                            _buildRadioTile<ThemeMode>(
-                              context,
-                              title: '浅色模式',
-                              value: ThemeMode.light,
-                            ),
-                            _buildRadioTile<ThemeMode>(
-                              context,
-                              title: '深色模式',
-                              value: ThemeMode.dark,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+          return ResponsivePageContainer(
+            maxWidth: 1480,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final contentWidth = constraints.maxWidth;
+                final useGrid = contentWidth >= ResponsiveBreakpoints.desktop;
+
+                if (!useGrid) {
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    itemCount: sections.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) => sections[index],
+                  );
+                }
+
+                final spacing = 16.0;
+                final columns = 2;
+                final cardWidth =
+                    (contentWidth - spacing * (columns - 1)) / columns;
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: sections
+                        .map((section) => SizedBox(width: cardWidth, child: section))
+                        .toList(),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 高级设置
-              _buildAdvancedSection(context, settings),
-            ],
+                );
+              },
+            ),
           );
         },
       ),

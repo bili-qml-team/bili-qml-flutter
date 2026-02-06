@@ -327,98 +327,136 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   Widget _buildBody() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_videoInfo != null)
-              Container(
-                constraints: const BoxConstraints(maxWidth: 480),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: BiliNetworkImage(
-                    imageUrl: _videoInfo!.pic,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, error) {
-                      return Container(
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: Icon(Icons.broken_image, color: Colors.grey),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 1000;
+
+        return ResponsivePageContainer(
+          maxWidth: isWide ? 1400 : null,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 5, child: _buildVideoCover()),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 6,
+                        child: _buildVideoInfo(
+                          textAlign: TextAlign.left,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                         ),
-                      );
-                    },
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      _buildVideoCover(),
+                      const SizedBox(height: 24),
+                      _buildVideoInfo(
+                        textAlign: TextAlign.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                      ),
+                    ],
                   ),
-                ),
-              )
-            else
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.biliBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Center(
-                  child: Text('📺', style: TextStyle(fontSize: 40)),
-                ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVideoCover() {
+    if (_videoInfo == null) {
+      return Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: AppColors.biliBlue.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(child: Text('📺', style: TextStyle(fontSize: 40))),
+      );
+    }
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 640),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: BiliNetworkImage(
+          imageUrl: _videoInfo!.pic,
+          fit: BoxFit.cover,
+          errorWidget: (context, error) {
+            return Container(
+              color: Colors.grey[200],
+              child: const Center(
+                child: Icon(Icons.broken_image, color: Colors.grey),
               ),
-            const SizedBox(height: 24),
-            Text(
-              _videoInfo?.title ?? widget.title ?? 'BV${widget.bvid}',
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(widget.bvid, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 24),
-            if (_status != null) ...[
-              Text(
-                '❓ 抽象指数: ${_status!.count}',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoInfo({
+    required TextAlign textAlign,
+    required CrossAxisAlignment crossAxisAlignment,
+  }) {
+    return Column(
+      crossAxisAlignment: crossAxisAlignment,
+      children: [
+        Text(
+          _videoInfo?.title ?? widget.title ?? 'BV${widget.bvid}',
+          style: Theme.of(context).textTheme.titleLarge,
+          textAlign: textAlign,
+        ),
+        const SizedBox(height: 8),
+        Text(widget.bvid, style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 24),
+        if (_status != null) ...[
+          Text(
+            '❓ 抽象指数: ${_status!.count}',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: AppColors.biliBlue,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _status!.active ? '您已投票' : '您还未投票',
-                style: TextStyle(
-                  color: _status!.active ? AppColors.success : null,
-                ),
-              ),
-              const SizedBox(height: 24),
-            ] else
-              const Padding(
-                padding: EdgeInsets.only(bottom: 24),
-                child: CircularProgressIndicator(),
-              ),
-            ElevatedButton.icon(
-              onPressed: _openInBrowser,
-              icon: const Icon(Icons.open_in_browser),
-              label: const Text('在浏览器中观看'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-              ),
+            textAlign: textAlign,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _status!.active ? '您已投票' : '您还未投票',
+            style: TextStyle(
+              color: _status!.active ? AppColors.success : null,
             ),
-          ],
+            textAlign: textAlign,
+          ),
+          const SizedBox(height: 24),
+        ] else
+          const Padding(
+            padding: EdgeInsets.only(bottom: 24),
+            child: CircularProgressIndicator(),
+          ),
+        ElevatedButton.icon(
+          onPressed: _openInBrowser,
+          icon: const Icon(Icons.open_in_browser),
+          label: const Text('在浏览器中观看'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

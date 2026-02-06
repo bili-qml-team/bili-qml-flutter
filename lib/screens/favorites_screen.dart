@@ -78,14 +78,28 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           final grouped = provider.getGroupedByDate();
           return RefreshIndicator(
             onRefresh: () => provider.loadFavorites(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: grouped.length,
-              itemBuilder: (context, index) {
-                final dateKey = grouped.keys.elementAt(index);
-                final items = grouped[dateKey]!;
-                return _buildDateGroup(context, dateKey, items, isDark);
-              },
+            child: ResponsivePageContainer(
+              maxWidth: 1680,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final contentWidth = constraints.maxWidth;
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    itemCount: grouped.length,
+                    itemBuilder: (context, index) {
+                      final dateKey = grouped.keys.elementAt(index);
+                      final items = grouped[dateKey]!;
+                      return _buildDateGroup(
+                        context,
+                        dateKey,
+                        items,
+                        isDark,
+                        contentWidth,
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           );
         },
@@ -135,7 +149,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     String dateKey,
     List<FavoriteItem> items,
     bool isDark,
+    double contentWidth,
   ) {
+    final useGrid = contentWidth >= ResponsiveBreakpoints.desktop;
+    final spacing = 12.0;
+    final crossAxisCount = ResponsiveBreakpoints.adaptiveColumnCount(
+      contentWidth,
+      minTileWidth: 420,
+      minCount: 2,
+      maxCount: 4,
+    );
+    final cardWidth =
+        (contentWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -154,7 +180,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
         ),
         // 该日期的收藏
-        ...items.map((item) => _buildFavoriteCard(context, item, isDark)),
+        if (useGrid)
+          Wrap(
+            spacing: spacing,
+            runSpacing: 8,
+            children: items
+                .map(
+                  (item) => SizedBox(
+                    width: cardWidth,
+                    child: _buildFavoriteCard(context, item, isDark),
+                  ),
+                )
+                .toList(),
+          )
+        else
+          ...items.map((item) => _buildFavoriteCard(context, item, isDark)),
         const SizedBox(height: 16),
       ],
     );

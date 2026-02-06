@@ -78,14 +78,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
           final grouped = provider.getGroupedByDate();
           return RefreshIndicator(
             onRefresh: () => provider.loadHistory(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: grouped.length,
-              itemBuilder: (context, index) {
-                final dateKey = grouped.keys.elementAt(index);
-                final items = grouped[dateKey]!;
-                return _buildDateGroup(context, dateKey, items, isDark);
-              },
+            child: ResponsivePageContainer(
+              maxWidth: 1680,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final contentWidth = constraints.maxWidth;
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    itemCount: grouped.length,
+                    itemBuilder: (context, index) {
+                      final dateKey = grouped.keys.elementAt(index);
+                      final items = grouped[dateKey]!;
+                      return _buildDateGroup(
+                        context,
+                        dateKey,
+                        items,
+                        isDark,
+                        contentWidth,
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           );
         },
@@ -135,7 +149,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
     String dateKey,
     List<HistoryItem> items,
     bool isDark,
+    double contentWidth,
   ) {
+    final useGrid = contentWidth >= ResponsiveBreakpoints.desktop;
+    final spacing = 12.0;
+    final crossAxisCount = ResponsiveBreakpoints.adaptiveColumnCount(
+      contentWidth,
+      minTileWidth: 420,
+      minCount: 2,
+      maxCount: 4,
+    );
+    final cardWidth =
+        (contentWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -154,7 +180,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
         // 该日期的历史记录
-        ...items.map((item) => _buildHistoryCard(context, item, isDark)),
+        if (useGrid)
+          Wrap(
+            spacing: spacing,
+            runSpacing: 8,
+            children: items
+                .map(
+                  (item) => SizedBox(
+                    width: cardWidth,
+                    child: _buildHistoryCard(context, item, isDark),
+                  ),
+                )
+                .toList(),
+          )
+        else
+          ...items.map((item) => _buildHistoryCard(context, item, isDark)),
         const SizedBox(height: 16),
       ],
     );
