@@ -17,37 +17,48 @@ class LeaderboardTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ...LeaderboardRange.values.map((range) {
-              final isSelected = range == currentRange;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: _TabButton(
-                  label: range.label,
-                  isSelected: isSelected,
-                  onTap: () => onRangeChanged(range),
-                ),
-              );
-            }),
-            if (onSearchPressed != null) ...[
-              const SizedBox(width: 8),
-              _TabButton(
-                label: '筛选',
-                isSelected: false,
-                onTap: onSearchPressed!,
-                icon: Icons.filter_list,
-              ),
-            ],
-          ],
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 1200;
+        final verticalPadding = isDesktop ? 10.0 : 8.0;
+        final horizontalPadding = isDesktop ? 20.0 : 16.0;
+        final tabGap = isDesktop ? 6.0 : 4.0;
+
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: verticalPadding),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ...LeaderboardRange.values.map((range) {
+                  final isSelected = range == currentRange;
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: tabGap / 2),
+                    child: _TabButton(
+                      label: range.label,
+                      isSelected: isSelected,
+                      isDesktop: isDesktop,
+                      onTap: () => onRangeChanged(range),
+                    ),
+                  );
+                }),
+                if (onSearchPressed != null) ...[
+                  SizedBox(width: isDesktop ? 10 : 8),
+                  _TabButton(
+                    label: '筛选',
+                    isSelected: false,
+                    isDesktop: isDesktop,
+                    onTap: onSearchPressed!,
+                    icon: Icons.filter_list,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -55,12 +66,14 @@ class LeaderboardTabs extends StatelessWidget {
 class _TabButton extends StatelessWidget {
   final String label;
   final bool isSelected;
+  final bool isDesktop;
   final VoidCallback onTap;
   final IconData? icon;
 
   const _TabButton({
     required this.label,
     required this.isSelected,
+    required this.isDesktop,
     required this.onTap,
     this.icon,
   });
@@ -74,17 +87,20 @@ class _TabButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isDesktop ? 22 : 20),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? 18 : 16,
+            vertical: isDesktop ? 10 : 8,
+          ),
           decoration: BoxDecoration(
             color: isSelected
                 ? AppColors.biliBlue
                 : (isDark
                       ? Colors.white10
                       : Colors.black.withValues(alpha: 0.05)),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(isDesktop ? 22 : 20),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -92,7 +108,7 @@ class _TabButton extends StatelessWidget {
               if (icon != null) ...[
                 Icon(
                   icon,
-                  size: 16,
+                  size: isDesktop ? 17 : 16,
                   color: isSelected
                       ? Colors.white
                       : (isDark
@@ -109,8 +125,8 @@ class _TabButton extends StatelessWidget {
                       : (isDark
                             ? AppColors.darkTextSecondary
                             : AppColors.lightTextSecondary),
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: isDesktop ? 14.5 : 14,
                 ),
               ),
             ],

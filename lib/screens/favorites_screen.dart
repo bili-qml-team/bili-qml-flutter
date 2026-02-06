@@ -222,6 +222,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   ) {
     final thumbWidth = isGridMode ? 136.0 : 120.0;
     final thumbHeight = thumbWidth * 0.625;
+    final cardPadding = isGridMode
+        ? const EdgeInsets.symmetric(horizontal: 14, vertical: 13)
+        : const EdgeInsets.all(12);
+    final secondaryColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final tertiaryColor = isDark
+        ? AppColors.darkTextSecondary.withValues(alpha: 0.7)
+        : AppColors.lightTextSecondary.withValues(alpha: 0.7);
 
     return Card(
       margin: isGridMode ? EdgeInsets.zero : const EdgeInsets.only(bottom: 8),
@@ -232,7 +241,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: cardPadding,
           child: Row(
             children: [
               // 封面图
@@ -262,12 +271,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       item.title ?? item.bvid,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                      style: TextStyle(
+                        fontSize: isGridMode ? 14.5 : 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: isGridMode ? 6 : 4),
                     // UP主
                     if (item.ownerName != null && item.ownerName!.isNotEmpty)
                       Text(
@@ -275,22 +285,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12,
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
+                          fontSize: isGridMode ? 12.5 : 12,
+                          color: secondaryColor,
                         ),
                       ),
+                    if (item.ownerName != null && item.ownerName!.isNotEmpty)
+                      const SizedBox(height: 2),
                     // 收藏时间
                     Text(
                       _formatSavedTime(item.savedAt),
                       style: TextStyle(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.darkTextSecondary.withValues(alpha: 0.7)
-                            : AppColors.lightTextSecondary.withValues(
-                                alpha: 0.7,
-                              ),
+                        fontSize: isGridMode ? 11.5 : 11,
+                        color: tertiaryColor,
+                        height: 1.2,
                       ),
                     ),
                   ],
@@ -298,7 +305,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ),
               // 删除按钮
               IconButton(
-                icon: const Icon(Icons.close, size: 20),
+                icon: Icon(Icons.close, size: isGridMode ? 18 : 20),
                 onPressed: () => _showRemoveDialog(context, item),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

@@ -261,14 +261,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context, bool isDark) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= ResponsiveBreakpoints.desktop;
+    final logoSize = isDesktop ? 44.0 : 40.0;
+    final iconButtonSize = isDesktop ? 42.0 : 40.0;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 20 : 16,
+        vertical: isDesktop ? 14 : 12,
+      ),
       child: Row(
         children: [
           // Logo
           Container(
-            width: 40,
-            height: 40,
+            width: logoSize,
+            height: logoSize,
             decoration: BoxDecoration(
               color: AppColors.biliBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
@@ -276,22 +284,30 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Center(
               child: Image.asset(
                 'assets/icons/icon128.png',
-                width: 32,
-                height: 32,
+                width: isDesktop ? 34 : 32,
+                height: isDesktop ? 34 : 32,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: isDesktop ? 14 : 12),
           // 标题
           Text(
             'B站问号榜',
             style: Theme.of(
               context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: isDesktop ? 27 : null,
+              letterSpacing: isDesktop ? 0.2 : null,
+            ),
           ),
           const Spacer(),
           // 搜索按钮
           IconButton(
+            constraints: BoxConstraints.tightFor(
+              width: iconButtonSize,
+              height: iconButtonSize,
+            ),
             icon: Icon(
               Icons.search,
               color: isDark
@@ -303,6 +319,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           // 菜单按钮
           IconButton(
+            constraints: BoxConstraints.tightFor(
+              width: iconButtonSize,
+              height: iconButtonSize,
+            ),
             icon: Icon(
               Icons.menu,
               color: isDark

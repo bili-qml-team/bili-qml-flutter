@@ -33,75 +33,98 @@ class _VideoCardState extends State<VideoCard> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: widget.onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 封面区域
-            AspectRatio(
-              aspectRatio: 16 / 10,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // 封面图
-                  _buildThumbnail(),
-                  // 排名徽章
-                  Positioned(left: 8, top: 8, child: _buildRankBadge(isDark)),
-                  // 分享按钮
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: _buildShareButton(context),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth;
+        final isWideCard = cardWidth >= 280;
+        final isCompactCard = cardWidth <= 210;
+        final contentPadding = isWideCard
+            ? 14.0
+            : isCompactCard
+                ? 10.0
+                : 12.0;
+        final titleFontSize = isWideCard
+            ? 15.0
+            : isCompactCard
+                ? 13.0
+                : 14.0;
+
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: widget.onTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 封面区域
+                AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // 封面图
+                      _buildThumbnail(),
+                      // 排名徽章
+                      Positioned(
+                        left: isWideCard ? 10 : 8,
+                        top: isWideCard ? 10 : 8,
+                        child: _buildRankBadge(isDark, isWideCard),
+                      ),
+                      // 分享按钮
+                      Positioned(
+                        right: isWideCard ? 10 : 8,
+                        top: isWideCard ? 10 : 8,
+                        child: _buildShareButton(context, isWideCard),
+                      ),
+                      // 底部操作栏
+                      Positioned(
+                        right: isWideCard ? 10 : 8,
+                        bottom: isWideCard ? 10 : 8,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 收藏按钮
+                            _buildFavoriteButton(context, isWideCard),
+                            const SizedBox(width: 4),
+                            // 抽象指数
+                            _buildScoreTag(isWideCard),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  // 底部操作栏
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 收藏按钮
-                        _buildFavoriteButton(context),
-                        const SizedBox(width: 4),
-                        // 抽象指数
-                        _buildScoreTag(),
-                      ],
-                    ),
+                ),
+                // 内容区域
+                Padding(
+                  padding: EdgeInsets.all(contentPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 标题
+                      Text(
+                        widget.item.title ?? 'Loading...',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                          fontSize: titleFontSize,
+                        ),
+                      ),
+                      SizedBox(height: isCompactCard ? 6 : 8),
+                      // UP主信息
+                      _buildOwnerInfo(theme, isWideCard),
+                      SizedBox(height: isCompactCard ? 3 : 4),
+                      // 播放/弹幕数
+                      _buildStats(theme, isWideCard),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            // 内容区域
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 标题
-                  Text(
-                    widget.item.title ?? 'Loading...',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // UP主信息
-                  _buildOwnerInfo(theme),
-                  const SizedBox(height: 4),
-                  // 播放/弹幕数
-                  _buildStats(theme),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -151,7 +174,7 @@ class _VideoCardState extends State<VideoCard> {
     );
   }
 
-  Widget _buildRankBadge(bool isDark) {
+  Widget _buildRankBadge(bool isDark, bool isWideCard) {
     String rankText;
     Color bgColor;
     Color textColor = Colors.white;
@@ -177,10 +200,13 @@ class _VideoCardState extends State<VideoCard> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWideCard ? 9 : 8,
+        vertical: isWideCard ? 5 : 4,
+      ),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(isWideCard ? 5 : 4),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -193,14 +219,16 @@ class _VideoCardState extends State<VideoCard> {
         rankText,
         style: TextStyle(
           color: textColor,
-          fontSize: widget.rank == 1 && widget.isRank1Custom ? 12 : 14,
+          fontSize: widget.rank == 1 && widget.isRank1Custom
+              ? (isWideCard ? 13 : 12)
+              : (isWideCard ? 15 : 14),
           fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
-  Widget _buildShareButton(BuildContext context) {
+  Widget _buildShareButton(BuildContext context, bool isWideCard) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -209,8 +237,8 @@ class _VideoCardState extends State<VideoCard> {
         },
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          width: 32,
-          height: 32,
+          width: isWideCard ? 34 : 32,
+          height: isWideCard ? 34 : 32,
           decoration: BoxDecoration(
             color: Colors.black54,
             shape: BoxShape.circle,
@@ -222,13 +250,17 @@ class _VideoCardState extends State<VideoCard> {
               ),
             ],
           ),
-          child: const Icon(Icons.share, color: Colors.white, size: 16),
+          child: Icon(
+            Icons.share,
+            color: Colors.white,
+            size: isWideCard ? 18 : 16,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFavoriteButton(BuildContext context) {
+  Widget _buildFavoriteButton(BuildContext context, bool isWideCard) {
     return Consumer<FavoritesProvider>(
       builder: (context, favoritesProvider, _) {
         final isFavorited = favoritesProvider.isFavoritedSync(widget.item.bvid);
@@ -254,8 +286,8 @@ class _VideoCardState extends State<VideoCard> {
             },
             borderRadius: BorderRadius.circular(20),
             child: Container(
-              width: 28,
-              height: 28,
+              width: isWideCard ? 30 : 28,
+              height: isWideCard ? 30 : 28,
               decoration: BoxDecoration(
                 color: Colors.black54,
                 shape: BoxShape.circle,
@@ -263,7 +295,7 @@ class _VideoCardState extends State<VideoCard> {
               child: Icon(
                 isFavorited ? Icons.favorite : Icons.favorite_border,
                 color: isFavorited ? Colors.pinkAccent : Colors.white,
-                size: 16,
+                size: isWideCard ? 17 : 16,
               ),
             ),
           ),
@@ -272,9 +304,12 @@ class _VideoCardState extends State<VideoCard> {
     );
   }
 
-  Widget _buildScoreTag() {
+  Widget _buildScoreTag(bool isWideCard) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWideCard ? 9 : 8,
+        vertical: isWideCard ? 5 : 4,
+      ),
       decoration: BoxDecoration(
         color: Colors.black54,
         borderRadius: BorderRadius.circular(4),
@@ -282,13 +317,13 @@ class _VideoCardState extends State<VideoCard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('❓', style: TextStyle(fontSize: 14)),
+          Text('❓', style: TextStyle(fontSize: isWideCard ? 15 : 14)),
           const SizedBox(width: 4),
           Text(
             '${widget.item.count}',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: isWideCard ? 15 : 14,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -297,7 +332,7 @@ class _VideoCardState extends State<VideoCard> {
     );
   }
 
-  Widget _buildOwnerInfo(ThemeData theme) {
+  Widget _buildOwnerInfo(ThemeData theme, bool isWideCard) {
     return Row(
       children: [
         Container(
@@ -321,30 +356,52 @@ class _VideoCardState extends State<VideoCard> {
             widget.item.ownerName ?? '未知UP',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: isWideCard ? 12 : 11.5,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStats(ThemeData theme) {
+  Widget _buildStats(ThemeData theme, bool isWideCard) {
     return Row(
       children: [
-        _buildStatItem(theme, '▶', _formatCount(widget.item.viewCount)),
-        const SizedBox(width: 12),
-        _buildStatItem(theme, '💬', _formatCount(widget.item.danmakuCount)),
+        _buildStatItem(
+          theme,
+          '▶',
+          _formatCount(widget.item.viewCount),
+          isWideCard,
+        ),
+        SizedBox(width: isWideCard ? 14 : 12),
+        _buildStatItem(
+          theme,
+          '💬',
+          _formatCount(widget.item.danmakuCount),
+          isWideCard,
+        ),
       ],
     );
   }
 
-  Widget _buildStatItem(ThemeData theme, String icon, String value) {
+  Widget _buildStatItem(
+    ThemeData theme,
+    String icon,
+    String value,
+    bool isWideCard,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(icon, style: const TextStyle(fontSize: 12)),
+        Text(icon, style: TextStyle(fontSize: isWideCard ? 12.5 : 12)),
         const SizedBox(width: 2),
-        Text(value, style: theme.textTheme.bodySmall?.copyWith(fontSize: 12)),
+        Text(
+          value,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontSize: isWideCard ? 12.5 : 12,
+          ),
+        ),
       ],
     );
   }
