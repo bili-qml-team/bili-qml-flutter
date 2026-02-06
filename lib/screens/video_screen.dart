@@ -136,24 +136,30 @@ class _VideoScreenState extends State<VideoScreen> {
           if (retryResponse.success) {
             await _reloadStatus();
             _showSnackBar(
-              isVoting ? '投票成功 ❓' : '已取消投票',
+              isVoting ? '投票成功' : '已取消投票',
               tone: StatusTone.success,
             );
           } else {
-            _showSnackBar('操作失败: ${retryResponse.error}', tone: StatusTone.error);
+            _showSnackBar(
+              "操作失败：${retryResponse.error ?? '请稍后重试'}",
+              tone: StatusTone.error,
+            );
           }
         }
       } else if (response.success) {
         await _reloadStatus();
         _showSnackBar(
-          isVoting ? '投票成功 ❓' : '已取消投票',
+          isVoting ? '投票成功' : '已取消投票',
           tone: StatusTone.success,
         );
       } else {
-        _showSnackBar('操作失败: ${response.error}', tone: StatusTone.error);
+        _showSnackBar(
+          "操作失败：${response.error ?? '请稍后重试'}",
+          tone: StatusTone.error,
+        );
       }
     } catch (e) {
-      _showSnackBar('网络错误: $e', tone: StatusTone.error);
+      _showSnackBar('网络异常，请稍后重试', tone: StatusTone.error);
     } finally {
       if (mounted) {
         setState(() => _isVoting = false);
@@ -462,7 +468,7 @@ class _VideoScreenState extends State<VideoScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _status!.active ? '您已投票' : '您还未投票',
+            _status!.active ? '当前状态：已投票' : '当前状态：未投票',
             style: TextStyle(
               color: _status!.active ? AppColors.success : null,
             ),

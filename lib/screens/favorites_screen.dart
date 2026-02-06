@@ -121,7 +121,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            '暂无收藏',
+            '暂无收藏内容',
             style: TextStyle(
               fontSize: 18,
               color: isDark
@@ -131,7 +131,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '快去收藏喜欢的视频吧',
+            '去排行榜收藏你喜欢的视频吧',
             style: TextStyle(
               fontSize: 14,
               color: isDark
@@ -374,7 +374,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 if (success) {
                   StatusFeedback.success(context, '已移除收藏');
                 } else {
-                  StatusFeedback.error(context, '移除失败');
+                  StatusFeedback.error(context, '移除收藏失败，请重试');
                 }
               }
             },
@@ -405,7 +405,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 if (success) {
                   StatusFeedback.success(context, '已清空收藏');
                 } else {
-                  StatusFeedback.error(context, '清空失败');
+                  StatusFeedback.error(context, '清空收藏失败，请重试');
                 }
               }
             },

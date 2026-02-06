@@ -348,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text('正在获取排行榜数据...'),
+                Text('正在加载排行榜...'),
               ],
             ),
           );
@@ -369,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text('📭', style: TextStyle(fontSize: 48)),
                 SizedBox(height: 16),
-                Text('暂无数据'),
+                Text('暂无排行榜数据'),
               ],
             ),
           );
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Text('🤖', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 16),
-          const Text('需要人机验证'),
+          const Text('当前操作需要人机验证'),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () async {
@@ -416,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const Text('⚠️', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 16),
           Text(
-            provider.error ?? '获取失败',
+            provider.error ?? '数据加载失败，请重试',
             style: const TextStyle(color: AppColors.error),
           ),
           const SizedBox(height: 16),
@@ -629,11 +629,12 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
-        _showErrorSnackBar('无法解析短链接');
+        _showErrorSnackBar('短链接解析失败，请重试');
       } catch (e) {
         if (!mounted) return;
         Navigator.of(context).pop(); // 关闭加载对话框
-        _showErrorSnackBar('解析短链接失败: $e');
+        debugPrint('短链接解析失败: $e');
+        _showErrorSnackBar('短链接解析失败，请稍后重试');
       }
       return;
     }
@@ -644,7 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.of(dialogContext).pop();
       _openVideo(context, bvid, null);
     } else {
-      _showErrorSnackBar('无效的 BV 号或链接');
+      _showErrorSnackBar('BV 号或链接格式无效');
     }
   }
 

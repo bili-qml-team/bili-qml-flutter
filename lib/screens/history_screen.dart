@@ -131,7 +131,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '观看过的视频会显示在这里',
+            '你看过的视频会显示在这里',
             style: TextStyle(
               fontSize: 14,
               color: isDark
@@ -374,7 +374,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 if (success) {
                   StatusFeedback.success(context, '已移除记录');
                 } else {
-                  StatusFeedback.error(context, '移除失败');
+                  StatusFeedback.error(context, '移除记录失败，请重试');
                 }
               }
             },
@@ -405,7 +405,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 if (success) {
                   StatusFeedback.success(context, '已清空历史');
                 } else {
-                  StatusFeedback.error(context, '清空失败');
+                  StatusFeedback.error(context, '清空历史失败，请重试');
                 }
               }
             },

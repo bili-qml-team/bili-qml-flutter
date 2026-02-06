@@ -93,7 +93,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 await shareService.copyBvid(widget.item.bvid);
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  StatusFeedback.success(context, '已复制 BV 号');
+                  StatusFeedback.success(context, 'BV 号已复制');
                 }
               },
             ),
@@ -107,7 +107,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 await shareService.copyVideoUrl(widget.item.bvid);
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  StatusFeedback.success(context, '已复制链接');
+                  StatusFeedback.success(context, '视频链接已复制');
                 }
               },
             ),
@@ -124,7 +124,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                 );
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  StatusFeedback.success(context, '已复制完整信息');
+                  StatusFeedback.success(context, '视频信息已复制');
                 }
               },
             ),
@@ -152,7 +152,7 @@ class _ShareOptionsDialogState extends State<ShareOptionsDialog> {
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            StatusFeedback.error(context, '生成失败: $e');
+                            StatusFeedback.error(context, '生成失败：$e');
                           }
                         } finally {
                           if (mounted) {

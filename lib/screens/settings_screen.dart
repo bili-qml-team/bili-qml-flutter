@@ -252,7 +252,7 @@ class SettingsScreen extends StatelessWidget {
                   Navigator.of(dialogContext).pop();
                 }
               } else {
-                StatusFeedback.warning(dialogContext, '请输入有效的数字 UID');
+                StatusFeedback.warning(dialogContext, 'UID 格式无效，请输入纯数字');
               }
             },
             child: const Text('保存'),
