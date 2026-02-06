@@ -48,9 +48,19 @@ class VoteFab extends StatelessWidget {
                 color: isVoted ? Colors.white : unvotedForeground,
               ),
             ),
-      label: Text(
-        _formatCount(count),
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      label: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 160),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        child: Text(
+          _formatCount(count),
+          key: ValueKey('vote_count_${_formatCount(count)}'),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
       ),
       shape: StadiumBorder(
         side: BorderSide(
@@ -117,14 +127,17 @@ class _AnimatedVoteFabState extends State<AnimatedVoteFab>
   }
 
   void _handleTapDown(TapDownDetails details) {
+    if (widget.isLoading || widget.onPressed == null) return;
     _controller.forward();
   }
 
   void _handleTapUp(TapUpDetails details) {
+    if (widget.isLoading || widget.onPressed == null) return;
     _controller.reverse();
   }
 
   void _handleTapCancel() {
+    if (widget.isLoading || widget.onPressed == null) return;
     _controller.reverse();
   }
 

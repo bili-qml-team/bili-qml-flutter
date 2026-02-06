@@ -334,7 +334,7 @@ class _VideoScreenState extends State<VideoScreen> {
       ),
       body: _buildBody(),
       floatingActionButton: _status != null
-          ? VoteFab(
+          ? AnimatedVoteFab(
               count: _status!.count,
               isVoted: _status!.active,
               isLoading: _isVoting,

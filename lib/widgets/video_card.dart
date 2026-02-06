@@ -30,6 +30,8 @@ class VideoCard extends StatefulWidget {
 }
 
 class _VideoCardState extends State<VideoCard> {
+  bool _isHovering = false;
+
   BoxShadow _softShadow({
     required double blur,
     required Offset offset,
@@ -64,7 +66,7 @@ class _VideoCardState extends State<VideoCard> {
                 ? 13.0
                 : 14.0;
 
-        return Card(
+        final card = Card(
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: widget.onTap,
@@ -136,6 +138,33 @@ class _VideoCardState extends State<VideoCard> {
                   ),
                 ),
               ],
+            ),
+          ),
+        );
+
+        if (!kIsWeb || widget.onTap == null) {
+          return card;
+        }
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) {
+            if (_isHovering) return;
+            setState(() => _isHovering = true);
+          },
+          onExit: (_) {
+            if (!_isHovering) return;
+            setState(() => _isHovering = false);
+          },
+          child: AnimatedScale(
+            scale: _isHovering ? 1.015 : 1,
+            duration: const Duration(milliseconds: 130),
+            curve: Curves.easeOutCubic,
+            child: AnimatedSlide(
+              offset: _isHovering ? const Offset(0, -0.01) : Offset.zero,
+              duration: const Duration(milliseconds: 130),
+              curve: Curves.easeOutCubic,
+              child: card,
             ),
           ),
         );
