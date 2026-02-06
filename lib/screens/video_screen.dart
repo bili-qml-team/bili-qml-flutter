@@ -479,7 +479,7 @@ class _VideoScreenState extends State<VideoScreen> {
             ),
             textAlign: textAlign,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
         ] else
           Padding(
             padding: const EdgeInsets.only(bottom: 24),
@@ -501,6 +501,8 @@ class _VideoScreenState extends State<VideoScreen> {
                   )
                 : const CircularProgressIndicator(),
           ),
+        _buildDetailsSection(isWide: isWide, textAlign: textAlign),
+        const SizedBox(height: 20),
         ElevatedButton.icon(
           onPressed: _openInBrowser,
           icon: const Icon(Icons.open_in_browser),
@@ -511,5 +513,100 @@ class _VideoScreenState extends State<VideoScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildDetailsSection({required bool isWide, required TextAlign textAlign}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final info = _videoInfo;
+
+    final section = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '视频详细信息',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          if (info == null)
+            Text(
+              '详细信息加载中...',
+              style: theme.textTheme.bodySmall,
+            )
+          else
+            Wrap(
+              spacing: isWide ? 16 : 12,
+              runSpacing: 10,
+              children: [
+                _buildDetailItem('BV号', info.bvid, isWide),
+                _buildDetailItem('UP主', info.ownerName, isWide),
+                _buildDetailItem('UP主UID', info.ownerMid.toString(), isWide),
+                _buildDetailItem('播放', _formatCount(info.view), isWide),
+                _buildDetailItem('弹幕', _formatCount(info.danmaku), isWide),
+                _buildDetailItem('点赞', _formatCount(info.like), isWide),
+                _buildDetailItem('投币', _formatCount(info.coin), isWide),
+                _buildDetailItem('收藏', _formatCount(info.favorite), isWide),
+                _buildDetailItem('分享', _formatCount(info.share), isWide),
+              ],
+            ),
+        ],
+      ),
+    );
+
+    if (textAlign == TextAlign.left) {
+      return section;
+    }
+
+    return Align(
+      alignment: Alignment.center,
+      child: section,
+    );
+  }
+
+  Widget _buildDetailItem(String label, String value, bool isWide) {
+    final theme = Theme.of(context);
+    final itemWidth = isWide ? 180.0 : 150.0;
+
+    return SizedBox(
+      width: itemWidth,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatCount(int count) {
+    if (count >= 100000000) {
+      final v = count / 100000000;
+      return '${v >= 10 ? v.round() : v.toStringAsFixed(1)}亿';
+    }
+    if (count >= 10000) {
+      final v = count / 10000;
+      return '${v >= 10 ? v.round() : v.toStringAsFixed(1)}万';
+    }
+    return count.toString();
   }
 }

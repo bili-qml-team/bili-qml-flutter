@@ -325,6 +325,87 @@ class SettingsScreen extends StatelessWidget {
     BuildContext context,
     SettingsProvider settings,
   ) {
+    return _AdvancedOptionsSection(settings: settings);
+  }
+}
+
+class _AdvancedOptionsSection extends StatefulWidget {
+  final SettingsProvider settings;
+
+  const _AdvancedOptionsSection({required this.settings});
+
+  @override
+  State<_AdvancedOptionsSection> createState() => _AdvancedOptionsSectionState();
+}
+
+class _AdvancedOptionsSectionState extends State<_AdvancedOptionsSection> {
+  late final TextEditingController _apiController;
+  bool _hasChanges = false;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiController = TextEditingController(text: widget.settings.apiEndpoint);
+    _apiController.addListener(_onApiInputChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _AdvancedOptionsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isSaving || _hasChanges) return;
+
+    final latestEndpoint = widget.settings.apiEndpoint;
+    if (_apiController.text != latestEndpoint) {
+      _apiController.text = latestEndpoint;
+    }
+  }
+
+  @override
+  void dispose() {
+    _apiController.removeListener(_onApiInputChanged);
+    _apiController.dispose();
+    super.dispose();
+  }
+
+  void _onApiInputChanged() {
+    final input = _apiController.text.trim();
+    final normalized = input.isEmpty ? ApiConfig.defaultApiBase : input;
+    final changed = normalized != widget.settings.apiEndpoint;
+
+    if (changed != _hasChanges) {
+      setState(() => _hasChanges = changed);
+    }
+  }
+
+  Future<void> _saveAdvancedSettings() async {
+    if (_isSaving || !_hasChanges) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await widget.settings.setApiEndpoint(_apiController.text.trim());
+      if (!mounted) return;
+      _apiController.removeListener(_onApiInputChanged);
+      _apiController.text = widget.settings.apiEndpoint;
+      _apiController.addListener(_onApiInputChanged);
+      setState(() {
+        _isSaving = false;
+        _hasChanges = false;
+      });
+      StatusFeedback.success(context, '高级设置已保存');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      StatusFeedback.error(context, '保存失败，请稍后重试');
+    }
+  }
+
+  void _resetToDefault() {
+    _apiController.text = ApiConfig.defaultApiBase;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Card(
@@ -343,30 +424,45 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 Text('API 服务器设置', style: theme.textTheme.titleSmall),
                 const SizedBox(height: 4),
-                Text('自定义问号榜服务器地址', style: theme.textTheme.bodySmall),
+                Text('修改后请点击「保存设置」生效', style: theme.textTheme.bodySmall),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: TextField(
-                        controller: TextEditingController(
-                          text: settings.apiEndpoint,
-                        ),
+                        controller: _apiController,
                         decoration: InputDecoration(
                           hintText: ApiConfig.defaultApiBase,
                           border: const OutlineInputBorder(),
                           isDense: true,
                         ),
-                        onSubmitted: (value) => settings.setApiEndpoint(value),
+                        onSubmitted: (_) => _saveAdvancedSettings(),
                       ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.refresh),
-                      onPressed: () => settings.resetApiEndpoint(),
-                      tooltip: '重置为默认',
+                      onPressed: _isSaving ? null : _resetToDefault,
+                      tooltip: '填入默认地址',
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: (_isSaving || !_hasChanges)
+                        ? null
+                        : _saveAdvancedSettings,
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(_isSaving ? '保存中...' : '保存设置'),
+                  ),
                 ),
               ],
             ),
